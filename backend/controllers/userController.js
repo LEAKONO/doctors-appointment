@@ -2,6 +2,8 @@ const User = require('../models/User');
 const Doctor = require('../models/Doctor');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const sendEmail = require('../config/email');
+
 
 exports.register = async (req, res) => {
     const { name, email, password, role } = req.body;
@@ -99,20 +101,16 @@ exports.upgradeToDoctor = async (req, res) => {
       return res.status(403).json({ msg: 'Only admins can perform this action' });
     }
 
-    // Find the user to be upgraded
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ msg: 'User not found' });
 
-    // Check if the user is already a doctor
     if (user.role === 'doctor') {
       return res.status(400).json({ msg: 'User is already a doctor' });
     }
 
-    // Update the user's role to doctor
     user.role = 'doctor';
     await user.save();
 
-    // Create a corresponding Doctor entry
     const doctor = new Doctor({
       userId: user._id,
       specialty,
@@ -127,3 +125,100 @@ exports.upgradeToDoctor = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+exports.upgradeToDoctor = async (req, res) => {
+    const { userId, specialty, qualifications } = req.body;
+  
+    try {
+      // Check if the requester is an admin
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ msg: 'Only admins can perform this action' });
+      }
+  
+      // Find the user to be upgraded
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ msg: 'User not found' });
+  
+      // Check if the user is already a doctor
+      if (user.role === 'doctor') {
+        return res.status(400).json({ msg: 'User is already a doctor' });
+      }
+  
+      // Update the user's role to doctor
+      user.role = 'doctor';
+      await user.save();
+  
+      // Create a corresponding Doctor entry
+      const doctor = new Doctor({
+        userId: user._id,
+        specialty,
+        qualifications,
+        availableSlots: [],
+      });
+      await doctor.save();
+  
+      // Send email to the user
+      const emailText = `Congratulations! You have been upgraded to a doctor. Your specialty is ${specialty}.`;
+      await sendEmail(user.email, 'Upgraded to Doctor', emailText);
+  
+      res.json({ msg: 'User upgraded to doctor successfully', user });
+    } catch (err) {
+      console.error("❌ Error in upgradeToDoctor:", err);
+      res.status(500).send('Server error');
+    }
+  };
+  exports.getAllUsers = async (req, res) => {
+    try {
+      // Check if the requester is an admin
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ msg: 'Only admins can perform this action' });
+      }
+  
+      // Fetch all users from the database
+      const users = await User.find().select('-password'); // Exclude passwords from the response
+  
+      res.json(users);
+    } catch (err) {
+      console.error("❌ Error in getAllUsers:", err);
+      res.status(500).send('Server error');
+    }
+  };
+exports.deletePatient = async (req, res) => {
+    const { userId } = req.params;
+  
+    try {
+      // Check if the requester is an admin
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ msg: 'Only admins can delete patients' });
+      }
+  
+      // Find the user to be deleted
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ msg: 'User not found' });
+  
+      // Check if the user is a patient
+      if (user.role !== 'patient') {
+        return res.status(400).json({ msg: 'Only patients can be deleted' });
+      }
+  
+      // Delete the user
+      await User.findByIdAndDelete(userId);
+  
+      res.json({ msg: 'Patient deleted successfully' });
+    } catch (err) {
+      console.error("❌ Error in deletePatient:", err);
+      res.status(500).send('Server error');
+    }
+  };
+  exports.getAllPatients = async (req, res) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ msg: 'Only admins can perform this action' });
+      }
+  
+      const patients = await User.find({ role: 'patient' }).select('-password');
+      res.json(patients);
+    } catch (err) {
+      console.error("❌ Error in getAllPatients:", err);
+      res.status(500).send('Server error');
+    }
+  };

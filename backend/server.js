@@ -5,12 +5,24 @@ const userRoutes = require('./routes/userRoutes');
 const doctorRoutes = require('./routes/doctorRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
 
+// Load environment variables
 dotenv.config();
+
+// Debug environment variables
+console.log("🔍 Loaded Environment Variables:");
+console.log("MONGO_URI:", process.env.MONGO_URI);
+console.log("JWT_SECRET:", process.env.JWT_SECRET);
+console.log("PORT:", process.env.PORT);
+console.log("EMAIL_USER:", process.env.EMAIL_USER);
+console.log("EMAIL_PASSWORD:", process.env.EMAIL_PASSWORD);
+
+// Connect to MongoDB
 connectDB();
 
 const app = express();
 app.use(express.json());
 
+// Routes
 app.use('/api/users', userRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/appointments', appointmentRoutes);

@@ -3,17 +3,13 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// Public routes
-router.post('/register', userController.register); // Register a new user
-router.post('/login', userController.login); // Login a user
+router.post('/register', userController.register);
+router.post('/login', userController.login);
 
-// Authenticated routes
-router.get('/me', authMiddleware, userController.getMe); // Get logged-in user's profile
+router.get('/me', authMiddleware, userController.getMe);
 
-// Admin-only routes
-router.get('/all-patients', authMiddleware, userController.getAllPatients);
-router.post('/upgrade-to-doctor', authMiddleware, userController.upgradeToDoctor); // Upgrade a patient to a doctor
-router.delete('/patients/:userId', authMiddleware, userController.deletePatient); // Delete a patient
-router.get('/all-users', authMiddleware, userController.getAllUsers); // Get all users (admin-only)
+router.get('/users', authMiddleware, userController.getUsers);
+router.post('/users/upgrade', authMiddleware, userController.upgradeToDoctor);
+router.delete('/:userId', authMiddleware, userController.deleteUser);
 
 module.exports = router;

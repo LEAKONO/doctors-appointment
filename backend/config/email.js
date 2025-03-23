@@ -1,8 +1,7 @@
-require('dotenv').config(); // Ensure environment variables are loaded
+require('dotenv').config(); 
 
 const nodemailer = require('nodemailer');
 
-// Debug environment variables
 console.log("🔍 Email User (in email.js):", process.env.EMAIL_USER);
 console.log("🔍 Email Password (in email.js):", process.env.EMAIL_PASSWORD ? "Loaded" : "Not Loaded");
 

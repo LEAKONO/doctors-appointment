@@ -9,7 +9,7 @@ router.post('/login', userController.login);
 router.get('/me', authMiddleware, userController.getMe);
 
 router.get('/users', authMiddleware, userController.getUsers);
-router.post('/users/upgrade', authMiddleware, userController.upgradeToDoctor);
+router.post('/upgrade', authMiddleware, userController.upgradeToDoctor);
 router.delete('/:userId', authMiddleware, userController.deleteUser);
 
 module.exports = router;

@@ -7,6 +7,7 @@ const doctorRoutes = require('./routes/doctorRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
 
 dotenv.config();
+const cors = require('cors');
 
 console.log("🔍 Loaded Environment Variables:");
 console.log("MONGO_URI:", process.env.MONGO_URI);
@@ -17,9 +18,11 @@ console.log("EMAIL_PASSWORD:", process.env.EMAIL_PASSWORD);
 
 connectDB();
 
-const app = express();
+const app = express();  // ✅ Now app is initialized before use
+app.use(cors({ origin: '*' }));
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Now path is defined
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use('/api/users', userRoutes);
 app.use('/api/doctors', doctorRoutes);

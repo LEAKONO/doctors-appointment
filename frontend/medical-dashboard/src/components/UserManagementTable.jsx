@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
 import { TrashIcon, UserPlusIcon } from '@heroicons/react/24/outline';
+import { toast } from 'react-toastify';
 
 const UserManagementTable = () => {
   const [users, setUsers] = useState([]);
@@ -8,10 +9,11 @@ const UserManagementTable = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const { data } = await api.get('/auth/users');
+        const { data } = await api.get('/users');
         setUsers(data);
       } catch (error) {
         console.error('Error fetching users:', error);
+        toast.error('Failed to fetch users');
       }
     };
     fetchUsers();
@@ -19,57 +21,69 @@ const UserManagementTable = () => {
 
   const handleUpgrade = async (userId) => {
     try {
-      await api.post('/auth/upgrade', { userId });
+      const { data } = await api.post('/users/upgrade', { userId });
       setUsers(users.map(u => u._id === userId ? { ...u, role: 'doctor' } : u));
+      toast.success('User upgraded to doctor successfully');
     } catch (error) {
       console.error('Upgrade error:', error);
+      toast.error('Failed to upgrade user');
     }
   };
 
   const handleDelete = async (userId) => {
     try {
-      await api.delete(`/auth/${userId}`);
+      await api.delete(`/users/${userId}`);
       setUsers(users.filter(u => u._id !== userId));
+      toast.success('User deleted successfully');
     } catch (error) {
       console.error('Delete error:', error);
+      toast.error('Failed to delete user');
     }
   };
 
   return (
-    <div className="overflow-x-auto rounded-lg shadow">
-      <table className="w-full">
-        <thead className="bg-gray-50">
+    <div className="overflow-x-auto rounded-lg shadow bg-white p-4">
+      <table className="w-full border-collapse">
+        <thead className="bg-gray-100">
           <tr>
-            <th className="px-6 py-3 text-left">Name</th>
-            <th className="px-6 py-3 text-left">Email</th>
-            <th className="px-6 py-3 text-left">Role</th>
-            <th className="px-6 py-3 text-left">Actions</th>
+            <th className="px-6 py-3 text-left font-semibold">Name</th>
+            <th className="px-6 py-3 text-left font-semibold">Email</th>
+            <th className="px-6 py-3 text-left font-semibold">Role</th>
+            <th className="px-6 py-3 text-left font-semibold">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {users.map(user => (
-            <tr key={user._id}>
-              <td className="px-6 py-4">{user.name}</td>
-              <td className="px-6 py-4">{user.email}</td>
-              <td className="px-6 py-4 capitalize">{user.role}</td>
-              <td className="px-6 py-4 space-x-2">
-                {user.role === 'patient' && (
+          {users.length > 0 ? (
+            users.map(user => (
+              <tr key={user._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4">{user.name}</td>
+                <td className="px-6 py-4">{user.email}</td>
+                <td className="px-6 py-4 capitalize">{user.role}</td>
+                <td className="px-6 py-4 flex space-x-3">
+                  {user.role === 'patient' && (
+                    <button
+                      onClick={() => handleUpgrade(user._id)}
+                      className="text-green-600 hover:text-green-800 transition duration-200"
+                    >
+                      <UserPlusIcon className="w-5 h-5" />
+                    </button>
+                  )}
                   <button
-                    onClick={() => handleUpgrade(user._id)}
-                    className="text-green-600 hover:text-green-800"
+                    onClick={() => handleDelete(user._id)}
+                    className="text-red-600 hover:text-red-800 transition duration-200"
                   >
-                    <UserPlusIcon className="w-5 h-5" />
+                    <TrashIcon className="w-5 h-5" />
                   </button>
-                )}
-                <button
-                  onClick={() => handleDelete(user._id)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  <TrashIcon className="w-5 h-5" />
-                </button>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="4" className="text-center py-6 text-gray-500">
+                No users found
               </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>

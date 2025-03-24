@@ -20,4 +20,6 @@ const doctorSchema = new mongoose.Schema({
   availableSlots: [{ type: Date }]
 });
 
-module.exports = mongoose.model('Doctor', doctorSchema);
+const Doctor = mongoose.model('Doctor', doctorSchema);
+
+module.exports = Doctor;

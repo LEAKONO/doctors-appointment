@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 const AuthForm = ({ isLogin }) => {
-  const { login } = useAuth();
+  const { login, setUser ,user} = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -26,28 +28,47 @@ const AuthForm = ({ isLogin }) => {
 
     try {
       if (isLogin) {
-        // Login logic
-        const { data } = await api.post('/auth/login', {
-          email: formData.email,
-          password: formData.password
-        });
-        login({ token: data.token, ...data.user });
+        // If it's the login form, attempt to log the user in
+        await login(formData.email, formData.password);
+        navigate(`/${user.role}`); // Navigate to the role-based page
       } else {
-        // Signup validation
+        // If it's the registration form
         if (formData.password !== formData.passwordConfirm) {
           throw new Error('Passwords do not match');
         }
 
-        // Signup logic - remove role from request
-        const { data } = await api.post('/auth/register', {
+        // Send the registration request
+        const { data } = await api.post('/users/register', {
           name: formData.name,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
         });
-        login({ token: data.token, ...data.user });
+
+        // Debugging: Log API response to check structure
+        console.log('User registered:', data);
+
+        if (!data.token || !data.user) {
+          throw new Error('Registration failed');
+        }
+
+        // Store token and user data
+        localStorage.setItem('token', data.token);
+        setUser({
+          id: data.user._id,
+          name: data.user.name,
+          email: data.user.email,
+          role: data.user.role
+        });
+
+        // Log the user in immediately after registration
+        await login(formData.email, formData.password);
+
+        // Redirect to the correct page based on role
+        navigate(`/${user.role}`);
       }
     } catch (error) {
-      toast.error(error.response?.data?.msg || error.message);
+      console.error("Error during signup/login:", error);
+      toast.error(error.response?.data?.msg || error.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -96,9 +117,7 @@ const AuthForm = ({ isLogin }) => {
 
       {!isLogin && (
         <div>
-          <label className="block text-sm font-medium mb-1">
-            Confirm Password
-          </label>
+          <label className="block text-sm font-medium mb-1">Confirm Password</label>
           <input
             type="password"
             name="passwordConfirm"
@@ -117,13 +136,7 @@ const AuthForm = ({ isLogin }) => {
           loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'
         }`}
       >
-        {loading ? (
-          'Processing...'
-        ) : isLogin ? (
-          'Login'
-        ) : (
-          'Create Account'
-        )}
+        {loading ? 'Processing...' : isLogin ? 'Login' : 'Create Account'}
       </button>
     </form>
   );

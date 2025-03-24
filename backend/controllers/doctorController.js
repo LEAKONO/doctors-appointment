@@ -48,18 +48,62 @@ exports.getAppointments = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+// controllers/doctorController.js
+exports.getDoctorProfile = async (req, res) => {
+  try {
+    const doctor = await Doctor.findOne({ userId: req.user.userId })
+      .populate('userId', 'name email')
+      .select('-password');
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    const profileImageUrl = doctor.profileImage 
+      ? `${process.env.BASE_URL}/${doctor.profileImage}`
+      : null;
+
+    const responseData = {
+      ...doctor._doc,
+      name: doctor.userId.name, 
+      email: doctor.userId.email,
+      profileImage: profileImageUrl,
+    };
+
+    res.json(responseData);
+  } catch (error) {
+    console.error("Error fetching doctor profile:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 exports.getAllDoctors = async (req, res) => {
   try {
-    const { specialty } = req.query;
-    const query = specialty ? { specialty: { $regex: specialty, $options: 'i' } } : {};
-    const doctors = await Doctor.find(query).populate('userId', 'name email');
-    res.json(doctors);
+    console.log('✅ Checking if Doctor.find exists:', typeof Doctor.find === 'function');
+
+    const doctors = await Doctor.find()
+      .populate('userId', 'name email')
+      .lean(); 
+
+    const formattedDoctors = doctors.map(doctor => ({
+      _id: doctor._id,
+      name: doctor.userId?.name || 'Unnamed Doctor',
+      email: doctor.userId?.email || 'No email',
+      specialty: doctor.specialty,
+      qualifications: doctor.qualifications,
+      profileImage: doctor.profileImage ? `${process.env.BASE_URL}/${doctor.profileImage}` : null,
+      availableSlots: doctor.availableSlots || [],
+    }));
+
+    console.log("📋 Retrieved Doctors:", formattedDoctors);
+    res.status(200).json(formattedDoctors);
   } catch (err) {
-    console.error("❌ Error in getAllDoctors:", err);
-    res.status(500).send('Server error');
+    console.error("❌ Error fetching doctors:", err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
+
 
 exports.updateAppointmentStatus = async (req, res) => {
   try {
@@ -87,24 +131,22 @@ exports.updateAppointmentStatus = async (req, res) => {
 
 exports.uploadProfileImage = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ msg: 'No image uploaded' });
+      if (!req.file) {
+          return res.status(400).json({ message: "No file uploaded" });
+      }
 
-    const doctor = await Doctor.findOneAndUpdate(
-      { userId: req.user.userId },
-      { profileImage: req.file.path },
-      { new: true }
-    );
+      const imagePath = `uploads/${req.file.filename}`;
+      const fullImageUrl = `${process.env.BASE_URL}/${imagePath}`;
 
-    if (!doctor) return res.status(404).json({ msg: 'Doctor not found' });
+      // Update doctor's profile in the database
+      const doctor = await Doctor.findByIdAndUpdate(
+          req.user.id,
+          { profileImage: imagePath },
+          { new: true }
+      );
 
-    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
-    
-    res.json({
-      msg: 'Profile image updated successfully',
-      profileImage: `${baseUrl}/${doctor.profileImage}`
-    });
-  } catch (err) {
-    console.error("❌ Error uploading profile image:", err);
-    res.status(500).send('Server error');
+      res.json({ profileImage: fullImageUrl });
+  } catch (error) {
+      res.status(500).json({ message: "Error uploading image", error: error.message });
   }
 };

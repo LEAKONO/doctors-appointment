@@ -1,22 +1,24 @@
-import { useState } from 'react';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
-import api from '../api/axios';
+import { useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import api from "../api/axios";
 
 const AvailabilityCalendar = () => {
   const [selectedSlots, setSelectedSlots] = useState([]);
-  
+
   const handleSlotSelect = (dates) => {
-    const newSlots = dates.map(date => date.toISOString());
+    const newSlots = dates.map((date) => date.toISOString());
     setSelectedSlots(newSlots);
   };
 
   const submitAvailability = async () => {
     try {
-      await api.post('/doctors/set-availability', { availableSlots: selectedSlots });
-      alert('Availability updated successfully!');
+      await api.post("/doctors/set-availability", {
+        availableSlots: selectedSlots,
+      });
+      alert("Availability updated successfully!");
     } catch (error) {
-      console.error('Error updating availability:', error);
+      console.error("Error updating availability:", error);
     }
   };
 
@@ -32,9 +34,9 @@ const AvailabilityCalendar = () => {
         inline
         selectsMultiple
       />
-      <button 
+      <button
         onClick={submitAvailability}
-        className="mt-4 btn-primary"
+        className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700 transition duration-300"
       >
         Save Availability
       </button>

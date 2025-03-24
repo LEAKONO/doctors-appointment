@@ -10,7 +10,7 @@ router.patch(
   upload.single('profileImage'), 
   doctorController.uploadProfileImage
 );
-
+router.get('/profile', authMiddleware, doctorController.getDoctorProfile);
 router.get('/all-doctors', doctorController.getAllDoctors);
 router.post('/set-availability', authMiddleware, doctorController.setAvailability);
 router.get('/appointments', authMiddleware, doctorController.getAppointments);

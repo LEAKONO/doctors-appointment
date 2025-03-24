@@ -1,47 +1,80 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../api/axios';
+import { createContext, useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../api/axios";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    return JSON.parse(localStorage.getItem("user")) || null;
+  });
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const login = async (credentials) => {
+  const login = async (email, password) => {
     try {
-      const { data } = await api.post('/auth/login', credentials);
-      localStorage.setItem('token', data.token);
-      setUser(data);
+      console.log("🔵 Login request:", { email, password });
+
+      const { data } = await api.post("/users/login", { email, password });
+
+      localStorage.setItem("token", data.token);
+      const userData = {
+        id: data.userId,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+      };
+
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+
       navigate(`/${data.role}`);
     } catch (error) {
-      throw error;
+      console.error("❌ Login error:", error.response?.data?.message || error.message);
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setUser(null);
-    navigate('/');
+    navigate("/login");
   };
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const { data } = await api.get('/auth/me');
-          setUser(data);
-        } catch (error) {
-          logout();
-        }
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data } = await api.get("/users/me");
+        console.log("✅ Authenticated User:", data);
+
+        const userData = {
+          id: data._id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+        };
+
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
+      } catch (error) {
+        console.error("❌ Auth check failed:", error);
+        logout();
+      } finally {
+        setLoading(false);
       }
     };
+    
     checkAuth();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

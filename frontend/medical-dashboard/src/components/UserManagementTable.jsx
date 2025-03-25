@@ -110,8 +110,8 @@ const UserManagementTable = () => {
       )}
 
       {!showUpgradeForm && (
-        <div className="overflow-x-auto rounded-lg shadow bg-white p-6">
-          <table className="w-full border-collapse">
+        <div className="overflow-x-auto rounded-lg shadow bg-gray-200 p-6">
+        <table className="w-full border-collapse">
             <thead className="bg-gray-100">
               <tr>
                 <th className="px-6 py-4 text-left font-semibold">Name</th>

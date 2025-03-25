@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
 const AuthForm = ({ isLogin }) => {
-  const { login, setUser ,user} = useAuth();
+  const { login, setUser, user } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
@@ -42,10 +42,8 @@ const AuthForm = ({ isLogin }) => {
           name: formData.name,
           email: formData.email,
           password: formData.password,
+          // We assume 'patient' as default role on the server side
         });
-
-        // Debugging: Log API response to check structure
-        console.log('User registered:', data);
 
         if (!data.token || !data.user) {
           throw new Error('Registration failed');
@@ -57,7 +55,7 @@ const AuthForm = ({ isLogin }) => {
           id: data.user._id,
           name: data.user.name,
           email: data.user.email,
-          role: data.user.role
+          role: 'patient' // Setting role as patient by default
         });
 
         // Log the user in immediately after registration

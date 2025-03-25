@@ -13,8 +13,6 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      console.log("🔵 Login request:", { email, password });
-
       const { data } = await api.post("/users/login", { email, password });
 
       localStorage.setItem("token", data.token);
@@ -51,8 +49,6 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const { data } = await api.get("/users/me");
-        console.log("✅ Authenticated User:", data);
-
         const userData = {
           id: data._id,
           name: data.name,

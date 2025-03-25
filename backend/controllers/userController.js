@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const sendEmail = require("../config/email");
 
 exports.register = async (req, res) => {
-  const { name, email, password, role } = req.body; // Accept 'role' in request
+  const { name, email, password, role } = req.body; 
 
   try {
     if (await User.findOne({ email })) {
@@ -51,7 +51,6 @@ exports.register = async (req, res) => {
 // User Login
 exports.login = async (req, res) => {
   try {
-    // Ensure email is a string
     const email = String(req.body.email).trim();
     const { password } = req.body;
 
@@ -86,7 +85,7 @@ exports.login = async (req, res) => {
 
 exports.getMe = async (req, res) => {
   try {
-    let query = User.findById(req.userId).select("-password"); // ✅ Fixed
+    let query = User.findById(req.userId).select("-password"); 
 
     if (req.userRole === "doctor") {
       query = query.populate(
@@ -140,85 +139,189 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+
 exports.upgradeToDoctor = async (req, res) => {
   try {
-    // Ensure only an admin can perform this action
-    if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Unauthorized' });
+    console.log('Request body:', req.body);
+    console.log('Request file:', req.file);
 
-    const { userId, specialty, qualifications, profileImage } = req.body;
-    
-    // Find the user by ID
+    // Check admin role
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false,
+        msg: 'Unauthorized - Only admins can upgrade users' 
+      });
+    }
+
+    // Get data from form
+    const { userId, specialty, qualifications } = req.body;
+    let profileImage = '';
+
+    // Handle file upload
+    if (req.file) {
+      profileImage = req.file.path;
+      console.log('Profile image uploaded:', profileImage);
+    }
+
+    // Validate required fields
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ 
+        success: false,
+        msg: 'Valid user ID is required'
+      });
+    }
+
+    if (!specialty || !qualifications) {
+      return res.status(400).json({ 
+        success: false,
+        msg: 'Specialty and qualifications are required'
+      });
+    }
+
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ msg: 'User not found' });
-    if (user.role === 'doctor') return res.status(400).json({ msg: 'Already a doctor' });
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        msg: 'User not found'
+      });
+    }
 
-    // Create a new doctor profile
-    const doctor = await new Doctor({
+    if (user.role === 'doctor') {
+      return res.status(400).json({ 
+        success: false,
+        msg: 'User is already a doctor'
+      });
+    }
+
+    // Create doctor profile
+    const doctor = new Doctor({
       userId: user._id,
-      specialty: specialty || 'General',
-      qualifications: qualifications || 'MBBS',
-      profileImage: profileImage || ''
-    }).save();
+      specialty,
+      qualifications,
+      profileImage
+    });
 
-    // Update user role and link to doctor profile
+    await doctor.save();
+
+    // Update user role
     user.role = 'doctor';
     user.doctorProfile = doctor._id;
     await user.save();
 
-    // Send upgrade email with instructions
-    await sendEmail(
-      user.email,
-      'Account Upgraded - Welcome to the Doctor Portal!',
-      `Dear ${user.name},
+    // Send email to user
+    const subject = "Your Doctor Account is Ready!";
+    const message = `
+      Dear ${user.name},
 
-Congratulations! Your account has been successfully upgraded, and you are now registered as a doctor.
+      Congratulations! Your account has been successfully upgraded, and you are now registered as a doctor.
 
-🔹 **Specialty:** ${doctor.specialty}
+      🔹 **Specialty:** ${specialty}
 
-You can now log in to the system and access your doctor dashboard. To complete your profile:
-1️⃣ Log in using your registered email.  
-2️⃣ Navigate to the **Doctor Dashboard**.  
-3️⃣ Upload your profile image and set your availability.
+      You can now log in to the system and access your doctor dashboard. To complete your profile:
+      1️⃣ Log in using your registered email.
+      2️⃣ Navigate to the **Doctor Dashboard**.
+      3️⃣ Upload your profile image and set your availability.
 
-👉 **[Insert Login URL Here]** 👈
+      👉 **[Insert Login URL Here]** 👈
 
-If you have any questions, feel free to contact our support team.
+      If you have any questions, feel free to contact our support team.
 
-Best regards,  
-**Emmanuel Team**`
-    );
+      Best regards,  
+      **Emmanuel Team**
+    `;
 
-    res.json({ msg: 'Upgrade successful', user, doctor });
+    await sendEmail(user.email, subject, message);
+
+    return res.status(200).json({
+      success: true,
+      msg: 'Upgrade successful and email sent',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      },
+      doctor: {
+        _id: doctor._id,
+        specialty: doctor.specialty,
+        qualifications: doctor.qualifications,
+        profileImage: doctor.profileImage
+      }
+    });
+
   } catch (err) {
-    console.error("❌ Upgrade error:", err);
-    res.status(500).send('Server error');
+    console.error("Upgrade error:", err);
+    return res.status(500).json({ 
+      success: false,
+      msg: 'Server error during upgrade',
+      error: err.message
+    });
   }
 };
 
 exports.deleteUser = async (req, res) => {
   try {
-    console.log("🔹 DELETE request received for ID:", req.params.userId);
-
     const { userId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ msg: "Invalid user ID format" });
+    
+    // Validate user ID
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ 
+        success: false,
+        msg: "Invalid user ID format",
+        receivedId: userId
+      });
     }
 
+    // Authorization check (only admin can delete users)
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false,
+        msg: "Unauthorized - Only admins can delete users" 
+      });
+    }
+
+    // Check if user exists
+    const userToDelete = await User.findById(userId);
+    if (!userToDelete) {
+      return res.status(404).json({ 
+        success: false,
+        msg: "User not found",
+        userId: userId
+      });
+    }
+
+    // Prevent deletion of an admin user
+    if (userToDelete.role === "admin") {
+      return res.status(403).json({ 
+        success: false,
+        msg: "Unauthorized - Admin accounts cannot be deleted"
+      });
+    }
+
+    // Delete doctor profile if user is a doctor
+    if (userToDelete.role === "doctor" && userToDelete.doctorProfile) {
+      await Doctor.findByIdAndDelete(userToDelete.doctorProfile);
+    }
+
+    // Delete the user
     const deletedUser = await User.findByIdAndDelete(userId);
 
-    if (!deletedUser) {
-      return res.status(404).json({ msg: "User not found" });
-    }
+    return res.status(200).json({ 
+      success: true,
+      msg: "User deleted successfully",
+      deletedUser: {
+        _id: deletedUser._id,
+        name: deletedUser.name,
+        email: deletedUser.email
+      }
+    });
 
-    if (deletedUser.role === "doctor") {
-      await Doctor.findOneAndDelete({ userId: deletedUser._id });
-    }
-
-    console.log("✅ User deleted successfully:", deletedUser);
-    res.status(200).json({ msg: "User deleted successfully" });
   } catch (error) {
-    console.error("❌ Deletion error:", error);
-    res.status(500).json({ msg: "Server error" });
+    console.error("Deletion error:", error);
+    return res.status(500).json({ 
+      success: false,
+      msg: "Server error during deletion",
+      error: error.message
+    });
   }
 };

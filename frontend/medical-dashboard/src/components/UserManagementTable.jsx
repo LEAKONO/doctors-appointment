@@ -10,8 +10,8 @@ const UserManagementTable = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUpgradeForm, setShowUpgradeForm] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(false);
 
-  // Fetch Users
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -21,10 +21,9 @@ const UserManagementTable = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       
-      // Normalize user IDs
       const normalizedUsers = response.data.users.map(user => ({
         ...user,
-        _id: user._id || user.id, // Standardize ID field
+        _id: user._id || user.id,
       }));
       
       setUsers(normalizedUsers || []);
@@ -38,9 +37,8 @@ const UserManagementTable = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [refreshTrigger]);
 
-  // Handle User Upgrade
   const handleUpgrade = async (formData) => {
     if (!selectedUser?._id) return toast.error("No valid user selected for upgrade");
 
@@ -61,17 +59,21 @@ const UserManagementTable = () => {
       await api.post("/users/upgrade", submissionData, {
         headers: { Authorization: `Bearer ${token}` },
         transformRequest: (data, headers) => {
-          delete headers['Content-Type']; // Let browser set Content-Type
+          delete headers['Content-Type'];
           return data;
         }
       });
+
+      toast.success("User upgraded successfully");
+      setRefreshTrigger(prev => !prev);
+      setShowUpgradeForm(false);
+      setSelectedUser(null);
     } catch (error) {
       console.error("Upgrade error:", error);
       toast.error(error.response?.data?.msg || "Failed to upgrade user.");
     }
   };
 
-  // Handle User Deletion
   const handleDelete = async (userId) => {
     if (!userId || !window.confirm("Are you sure you want to delete this user?")) return;
     
@@ -86,6 +88,7 @@ const UserManagementTable = () => {
 
       setUsers(prevUsers => prevUsers.filter(user => user._id !== userId));
       toast.success(response.data.msg || "User deleted successfully");
+      setRefreshTrigger(prev => !prev);
     } catch (error) {
       console.error("Delete failed:", error);
       toast.error(error.response?.data?.msg || "Failed to delete user");
@@ -111,7 +114,7 @@ const UserManagementTable = () => {
 
       {!showUpgradeForm && (
         <div className="overflow-x-auto rounded-lg shadow bg-gray-200 p-6">
-        <table className="w-full border-collapse">
+          <table className="w-full border-collapse">
             <thead className="bg-gray-100">
               <tr>
                 <th className="px-6 py-4 text-left font-semibold">Name</th>

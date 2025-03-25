@@ -9,11 +9,10 @@ const PatientDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { user, loading: authLoading } = useAuth();
+  const [refreshTrigger, setRefreshTrigger] = useState(false);
 
   useEffect(() => {
     if (authLoading || !user) return;
-
-    console.log("🔵 Current User:", user);
 
     const fetchData = async () => {
       setLoading(true);
@@ -32,12 +31,13 @@ const PatientDashboard = () => {
     };
 
     fetchData();
-  }, [user, authLoading]);
+  }, [user, authLoading, refreshTrigger]);
 
   const bookAppointment = async (doctorId, date) => {
     try {
       const { data } = await api.post("/appointments/book", { doctorId, date });
       setAppointments((prevAppointments) => [...prevAppointments, data]);
+      setRefreshTrigger(prev => !prev); // Trigger refresh of doctor availability
     } catch (err) {
       console.error("Error booking appointment:", err);
     }

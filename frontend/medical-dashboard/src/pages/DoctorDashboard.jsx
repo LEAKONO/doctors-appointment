@@ -7,69 +7,86 @@ import { useAuth } from '../context/AuthContext';
 
 const DoctorDashboard = () => {
   const [appointments, setAppointments] = useState([]);
-  const { user, setUser } = useAuth();
+  const { user, updateUserProfile } = useAuth(); // Changed from setUser to updateUserProfile
   const [loading, setLoading] = useState(true);
 
+  const fetchAppointments = async () => {
+    try {
+      const { data } = await api.get('/doctors/appointments');
+      setAppointments(data || []);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+    }
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const { data } = await api.get('/doctors/profile');
+      if (data) {
+        updateUserProfile(data); // Use the context's update function
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    }
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([fetchAppointments(), fetchProfile()]);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchAppointments = async () => {
-      try {
-        const { data } = await api.get('/doctors/appointments');
-        setAppointments(data);
-      } catch (error) {
-        console.error("Error fetching appointments:", error);
-      }
-    };
-
-    const fetchDoctorProfile = async () => {
-      try {
-        const { data } = await api.get('/doctors/profile');
-        console.log("Profile Data:", data);
-
-        setUser(prev => ({
-          ...prev,
-          name: data.name,
-          doctorProfile: {
-            ...data,
-            profileImage: data.profileImage || "/default-avatar.png"
-          }
-        }));
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAppointments();
-    fetchDoctorProfile();
-  }, [setUser]);
+    fetchData();
+  }, []);
 
   const updateStatus = async (appointmentId, status) => {
     try {
       const { data } = await api.put(`/doctors/appointments/${appointmentId}`, { status });
       setAppointments(prev =>
-        prev.map(appointment => (appointment._id === appointmentId ? data : appointment))
+        prev.map(appointment => 
+          appointment._id === appointmentId ? data : appointment
+        )
       );
     } catch (error) {
       console.error("Error updating status:", error);
     }
   };
 
+  const handleProfileUpdate = async (newData) => {
+    try {
+      await api.post('/doctors/profile', newData);
+      await fetchProfile(); // Refetch the latest profile data
+    } catch (error) {
+      console.error("Profile update failed:", error);
+    }
+  };
+
+  const getDisplayName = () => {
+    if (loading) return "Loading...";
+    return `Dr. ${user?.doctorProfile?.name || user?.name || "Unknown"}`;
+  };
+
   return (
     <div className="flex min-h-screen">
       <Sidebar role="doctor" />
       <main className="flex-1 p-4 md:p-8">
-        
-        {/* Doctor's Name */}
         <h1 className="text-2xl font-bold mb-2">
-          {loading ? "Loading..." : `Dr. ${user?.doctorProfile?.name || "Unknown"}`}
+          {getDisplayName()}
         </h1>
 
-        {/* Full-width Decorative Line */}
+        {user?.email && (
+          <p className="text-gray-600 mb-4">{user.email}</p>
+        )}
+
         <div className="w-full border-b-4 border-green-500 mb-8"></div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Profile Section */}
           <div id="profile-section">
             <h2 className="text-xl font-semibold mb-4">Profile Settings</h2>
             <div className="flex items-center space-x-4">
@@ -82,18 +99,16 @@ const DoctorDashboard = () => {
                   className="w-24 h-24 rounded-full border"
                 />
               )}
-              <ProfileUpload setUser={setUser} />
+              <ProfileUpload onSuccess={handleProfileUpdate} />
             </div>
           </div>
 
-          {/* Availability Section */}
           <div id="availability-section">
             <h2 className="text-xl font-semibold mb-4">Set Availability</h2>
-            <AvailabilityCalendar />
+            <AvailabilityCalendar onUpdate={fetchData} />
           </div>
         </div>
 
-        {/* Appointments Section */}
         <section id="appointments-section" className="mt-8">
           <h2 className="text-xl font-semibold mb-4">Appointments</h2>
           <div className="overflow-x-auto">
@@ -131,7 +146,7 @@ const DoctorDashboard = () => {
                 ) : (
                   <tr>
                     <td colSpan="4" className="p-4 text-center">
-                      No appointments available.
+                      {loading ? "Loading appointments..." : "No appointments available."}
                     </td>
                   </tr>
                 )}

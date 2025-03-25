@@ -11,14 +11,12 @@ const Sidebar = ({ role }) => {
 
   const handleNavClick = (item) => {
     if (item.scrollId) {
-      // Scroll to section if scrollId exists
       const element = document.getElementById(item.scrollId);
       if (element) {
         element.scrollIntoView({ behavior: "smooth" });
       }
-      setIsOpen(false); // Close mobile menu
+      setIsOpen(false);
     }
-    // If no path or scrollId, do nothing
   };
 
   const navItems = {
@@ -51,9 +49,10 @@ const Sidebar = ({ role }) => {
 
       {/* Sidebar */}
       <aside
-        className={`md:relative md:translate-x-0 fixed top-0 left-0 w-64 h-full min-h-screen bg-gray-900 text-white shadow-lg transform transition-transform duration-300 ease-in-out z-50 ${
+        className={`md:relative md:translate-x-0 fixed top-0 left-0 w-64 bg-gray-900 text-white shadow-lg transform transition-transform duration-300 ease-in-out z-50 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
+        style={{ minHeight: '100vh', height: 'auto' }}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -62,8 +61,8 @@ const Sidebar = ({ role }) => {
             <p className="text-sm text-gray-300 truncate">{user?.email}</p>
           </div>
 
-          {/* Navigation Items */}
-          <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
+          {/* Navigation Items - Removed overflow-y-auto */}
+          <nav className="p-4 space-y-2 flex-1">
             {navItems[role].map((item) => (
               <div
                 key={item.name}

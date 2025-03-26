@@ -9,46 +9,49 @@ const PatientDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { user, loading: authLoading } = useAuth();
-  const [refreshTrigger, setRefreshTrigger] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState({});
 
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [user, authLoading]); // Removed refreshTrigger from dependencies
 
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [doctorsRes, appointmentsRes] = await Promise.all([
-          api.get("/doctors/all-doctors"),
-          api.get("/appointments/my-appointments"),
-        ]);
+  const fetchData = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const [doctorsRes, appointmentsRes] = await Promise.all([
+        api.get("/doctors/all-doctors"),
+        api.get("/appointments/my-appointments"),
+      ]);
 
-        const doctorsWithImages = doctorsRes.data.map((doctor) => ({
-          ...doctor,
-          profileImage: doctor.profileImage 
-            ? doctor.profileImage.startsWith('http') 
-              ? doctor.profileImage 
-              : `http://localhost:5000${doctor.profileImage}`
-            : '/default-profile.jpg'
-        }));
+      const doctorsWithImages = doctorsRes.data.map((doctor) => ({
+        ...doctor,
+        profileImage: doctor.profileImage 
+          ? doctor.profileImage.startsWith('http') 
+            ? doctor.profileImage 
+            : `http://localhost:5000${doctor.profileImage}`
+          : '/default-profile.jpg'
+      }));
 
-        setDoctors(doctorsWithImages);
-        setAppointments(appointmentsRes.data || []);
-      } catch (err) {
-        setError("Error fetching data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [user, authLoading, refreshTrigger]);
+      setDoctors(doctorsWithImages);
+      setAppointments(appointmentsRes.data || []);
+    } catch (err) {
+      setError("Error fetching data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const bookAppointment = async (doctorId, date) => {
     try {
       const { data } = await api.post("/appointments/book", { doctorId, date });
-      setAppointments((prevAppointments) => [...prevAppointments, data]);
-      setRefreshTrigger((prev) => !prev);
+      // Update local state immediately
+      setAppointments(prev => [...prev, data]);
+      // Optionally: Re-fetch to ensure consistency
+      await fetchData();
     } catch (err) {
       console.error("Error booking appointment:", err);
     }
@@ -58,7 +61,7 @@ const PatientDashboard = () => {
     setImagesLoaded(prev => ({...prev, [doctorId]: true}));
   };
 
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
       <div className="flex min-h-screen">
         <Sidebar role="patient" />
@@ -101,7 +104,7 @@ const PatientDashboard = () => {
       <Sidebar role="patient" />
       <main className="flex-1 p-8">
         <h1 className="text-2xl font-bold mb-2">
-          Welcome, {user?.name || "Guest"}
+          Welcome, {user.name}
         </h1>
         <hr className="border-t-2 border-gray-300 mb-8 w-full" />
 

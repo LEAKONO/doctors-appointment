@@ -1,72 +1,70 @@
-import { useState } from 'react';
-import { toast } from 'react-toastify';
-import PropTypes from 'prop-types';
+import { useState } from "react";
+import { toast } from "react-toastify";
+import PropTypes from "prop-types";
 
 const UpgradeDoctorForm = ({ user, onUpgrade, onCancel }) => {
   const [formData, setFormData] = useState({
-    specialty: 'General',
-    qualifications: 'MBBS',
-    profileImage: null
+    specialty: "General",
+    qualifications: "MBBS",
+    profileImage: null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleFileChange = (e) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      profileImage: e.target.files[0] || null
+      profileImage: e.target.files[0] || null,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!user?._id) {
-      toast.error('Invalid user information');
+      toast.error("Invalid user information");
       return;
     }
-  
+
     if (!formData.specialty || !formData.qualifications) {
-      toast.error('Specialty and qualifications are required');
+      toast.error("Specialty and qualifications are required");
       return;
     }
-  
+
     setIsSubmitting(true);
-  
+
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append('userId', user._id);
-      formDataToSend.append('specialty', formData.specialty);
-      formDataToSend.append('qualifications', formData.qualifications);
-  
+      formDataToSend.append("userId", user._id);
+      formDataToSend.append("specialty", formData.specialty);
+      formDataToSend.append("qualifications", formData.qualifications);
+
       if (formData.profileImage instanceof File) {
-        formDataToSend.append('profileImage', formData.profileImage);
+        formDataToSend.append("profileImage", formData.profileImage);
       }
 
       // Verify FormData before sending
-      console.log('Submitting with:', {
+      console.log("Submitting with:", {
         userId: user._id,
         specialty: formData.specialty,
         qualifications: formData.qualifications,
-        hasProfileImage: !!formData.profileImage
+        hasProfileImage: !!formData.profileImage,
       });
 
       await onUpgrade(formDataToSend);
-      toast.success('User upgraded to doctor successfully!');
+      toast.success("User upgraded to doctor successfully!");
       onCancel();
     } catch (error) {
-      console.error('Upgrade error:', error);
+      console.error("Upgrade error:", error);
       toast.error(
-        error.response?.data?.msg || 
-        error.message || 
-        'Failed to upgrade user'
+        error.response?.data?.msg || error.message || "Failed to upgrade user"
       );
     } finally {
       setIsSubmitting(false);
@@ -76,12 +74,15 @@ const UpgradeDoctorForm = ({ user, onUpgrade, onCancel }) => {
   return (
     <div className="bg-white shadow rounded-lg p-6 max-w-md mx-auto">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">
-        Upgrade {user?.name || 'User'} to Doctor
+        Upgrade {user?.name || "User"} to Doctor
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="specialty" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="specialty"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Specialty *
           </label>
           <select
@@ -98,11 +99,42 @@ const UpgradeDoctorForm = ({ user, onUpgrade, onCancel }) => {
             <option value="Dermatologist">Dermatologist</option>
             <option value="Pediatrician">Pediatrician</option>
             <option value="Neurologist">Neurologist</option>
+            <option value="Endocrinologist">Endocrinologist</option>
+            <option value="Gastroenterologist">Gastroenterologist</option>
+            <option value="Hematologist">Hematologist</option>
+            <option value="Nephrologist">Nephrologist</option>
+            <option value="Oncologist">Oncologist</option>
+            <option value="Ophthalmologist">Ophthalmologist</option>
+            <option value="Orthopedic">Orthopedic Surgeon</option>
+            <option value="Otolaryngologist">
+              Otolaryngologist (ENT Specialist)
+            </option>
+            <option value="Pulmonologist">Pulmonologist</option>
+            <option value="Rheumatologist">Rheumatologist</option>
+            <option value="Urologist">Urologist</option>
+            <option value="Allergist">Allergist/Immunologist</option>
+            <option value="Anesthesiologist">Anesthesiologist</option>
+            <option value="PlasticSurgeon">Plastic Surgeon</option>
+            <option value="Pathologist">Pathologist</option>
+            <option value="Psychiatrist">Psychiatrist</option>
+            <option value="Radiologist">Radiologist</option>
+            <option value="SportsMedicine">Sports Medicine Specialist</option>
+            <option value="VascularSurgeon">Vascular Surgeon</option>
+            <option value="InfectiousDisease">
+              Infectious Disease Specialist
+            </option>
+            <option value="Geriatrician">Geriatrician</option>
+            <option value="ObGyn">Obstetrician/Gynecologist</option>
+            <option value="ThoracicSurgeon">Thoracic Surgeon</option>
+            <option value="CriticalCare">Critical Care Specialist</option>
           </select>
         </div>
 
         <div>
-          <label htmlFor="qualifications" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="qualifications"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Qualifications *
           </label>
           <input
@@ -119,7 +151,10 @@ const UpgradeDoctorForm = ({ user, onUpgrade, onCancel }) => {
         </div>
 
         <div>
-          <label htmlFor="profileImage" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="profileImage"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Profile Image
           </label>
           <input
@@ -149,13 +184,31 @@ const UpgradeDoctorForm = ({ user, onUpgrade, onCancel }) => {
           >
             {isSubmitting ? (
               <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 Processing...
               </span>
-            ) : 'Upgrade'}
+            ) : (
+              "Upgrade"
+            )}
           </button>
         </div>
       </form>
@@ -168,7 +221,7 @@ UpgradeDoctorForm.propTypes = {
     _id: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired,
     email: PropTypes.string.isRequired,
-    role: PropTypes.string.isRequired
+    role: PropTypes.string.isRequired,
   }).isRequired,
   onUpgrade: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,

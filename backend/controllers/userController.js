@@ -145,7 +145,6 @@ exports.upgradeToDoctor = async (req, res) => {
     console.log('Request body:', req.body);
     console.log('Request file:', req.file);
 
-    // Check admin role
     if (req.user.role !== 'admin') {
       return res.status(403).json({ 
         success: false,
@@ -153,17 +152,14 @@ exports.upgradeToDoctor = async (req, res) => {
       });
     }
 
-    // Get data from form
     const { userId, specialty, qualifications } = req.body;
     let profileImage = '';
 
-    // Handle file upload
     if (req.file) {
       profileImage = req.file.path;
       console.log('Profile image uploaded:', profileImage);
     }
 
-    // Validate required fields
     if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ 
         success: false,
@@ -193,7 +189,6 @@ exports.upgradeToDoctor = async (req, res) => {
       });
     }
 
-    // Create doctor profile
     const doctor = new Doctor({
       userId: user._id,
       specialty,
@@ -203,31 +198,23 @@ exports.upgradeToDoctor = async (req, res) => {
 
     await doctor.save();
 
-    // Update user role
     user.role = 'doctor';
     user.doctorProfile = doctor._id;
     await user.save();
 
-    // Send email to user
     const subject = "Your Doctor Account is Ready!";
     const message = `
       Dear ${user.name},
 
       Congratulations! Your account has been successfully upgraded, and you are now registered as a doctor.
 
-      🔹 **Specialty:** ${specialty}
+      🔹 Specialty: ${specialty}
+      🔹 Qualifications: ${qualifications}
 
-      You can now log in to the system and access your doctor dashboard. To complete your profile:
-      1️⃣ Log in using your registered email.
-      2️⃣ Navigate to the **Doctor Dashboard**.
-      3️⃣ Upload your profile image and set your availability.
-
-      👉 **[Insert Login URL Here]** 👈
-
-      If you have any questions, feel free to contact our support team.
+      You can now log in to the system and access your doctor dashboard.
 
       Best regards,  
-      **Emmanuel Team**
+      Healthcare Team
     `;
 
     await sendEmail(user.email, subject, message);
@@ -258,7 +245,6 @@ exports.upgradeToDoctor = async (req, res) => {
     });
   }
 };
-
 exports.deleteUser = async (req, res) => {
   try {
     const { userId } = req.params;

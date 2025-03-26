@@ -18,20 +18,17 @@ export const AuthProvider = ({ children }) => {
       const { data } = await api.post("/users/login", { email, password });
       localStorage.setItem("token", data.token);
       
-      // Store basic user info first
       const userData = {
         id: data.userId,
         name: data.name,
         email: data.email,
-        role: data.role,
-        // Initialize doctorProfile as null - will be filled later if doctor
+        role: data.role || 'patient', 
         doctorProfile: null
       };
 
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
 
-      // If doctor, fetch profile separately
       if (data.role === 'doctor') {
         try {
           const profileRes = await api.get("/doctors/profile");
@@ -45,13 +42,41 @@ export const AuthProvider = ({ children }) => {
           });
         } catch (profileError) {
           console.error("Couldn't fetch doctor profile", profileError);
-          // Continue anyway with basic info
         }
       }
 
-      navigate(`/${data.role}`);
+      navigate(`/${data.role || 'patient'}`);
     } catch (error) {
       console.error("Login error:", error.response?.data?.message || error.message);
+      throw error;
+    }
+  };
+
+  const register = async (userData) => {
+    try {
+      const { data } = await api.post("/users/register", {
+        name: userData.name,
+        email: userData.email,
+        password: userData.password
+      });
+
+      localStorage.setItem("token", data.token);
+      
+      const newUser = {
+        id: data.userId,
+        name: data.name,
+        email: data.email,
+        role: 'patient', 
+        doctorProfile: null
+      };
+
+      setUser(newUser);
+      localStorage.setItem("user", JSON.stringify(newUser));
+      navigate('/patient'); 
+
+      return data;
+    } catch (error) {
+      console.error("Registration error:", error);
       throw error;
     }
   };
@@ -63,7 +88,6 @@ export const AuthProvider = ({ children }) => {
     navigate("/login");
   };
 
-  // Add this function to update user profile data
   const updateUserProfile = (profileData) => {
     setUser(prev => {
       if (!prev) return prev;
@@ -90,17 +114,15 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        // First get basic user info
         const { data } = await api.get("/users/me");
         const userData = {
           id: data._id,
           name: data.name,
           email: data.email,
-          role: data.role,
+          role: data.role || 'patient',
           doctorProfile: null
         };
 
-        // If doctor, get profile data
         if (data.role === 'doctor') {
           try {
             const profileRes = await api.get("/doctors/profile");
@@ -129,9 +151,10 @@ export const AuthProvider = ({ children }) => {
         user, 
         setUser,
         login, 
+        register,
         logout, 
         loading,
-        updateUserProfile // Add this to update profile data
+        updateUserProfile
       }}
     >
       {children}

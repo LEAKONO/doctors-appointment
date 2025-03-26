@@ -8,6 +8,8 @@ const doctorSchema = new mongoose.Schema({
     unique: true,
     validate: {
       validator: async function(value) {
+        if (this.isNew) return true;
+        
         const user = await mongoose.model('User').findById(value);
         return user && user.role === 'doctor';
       },
@@ -22,6 +24,7 @@ const doctorSchema = new mongoose.Schema({
   },
   qualifications: { 
     type: String,
+    required: true,
     default: 'MBBS',
     trim: true
   },
@@ -50,9 +53,14 @@ const doctorSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Add virtual for doctor's name
-doctorSchema.virtual('name').get(function() {
-  return this.userId?.name || 'Dr. Unknown';
+doctorSchema.virtual('name', {
+  ref: 'User',
+  localField: 'userId',
+  foreignField: '_id',
+  justOne: true,
+  get: function() {
+    return this._name || (this.userId?.name || 'Dr. Unknown');
+  }
 });
 
 const Doctor = mongoose.model('Doctor', doctorSchema);

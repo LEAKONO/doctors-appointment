@@ -2,6 +2,8 @@ const Doctor = require('../models/Doctor');
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const sendEmail = require('../config/email');
+const path = require('path');
+const fs = require('fs');
 
 exports.setAvailability = async (req, res) => {
   try {
@@ -34,6 +36,34 @@ exports.setAvailability = async (req, res) => {
   }
 };
 
+exports.updateDoctorProfile = async (req, res) => {
+  try {
+    const { name, specialty, qualifications, ...otherData } = req.body;
+    
+    const updatedDoctor = await Doctor.findOneAndUpdate(
+      { userId: req.user.userId },
+      { specialty, qualifications, ...otherData },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedDoctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    if (name) {
+      await User.findByIdAndUpdate(req.user.userId, { name }, { new: true });
+    }
+
+    res.json({
+      message: "Profile updated successfully",
+      doctor: updatedDoctor
+    });
+  } catch (error) {
+    console.error("Error updating doctor profile:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 exports.getAppointments = async (req, res) => {
   try {
     const doctor = await Doctor.findOne({ userId: req.user.userId });
@@ -48,7 +78,7 @@ exports.getAppointments = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
-// controllers/doctorController.js
+
 exports.getDoctorProfile = async (req, res) => {
   try {
     const doctor = await Doctor.findOne({ userId: req.user.userId })
@@ -60,7 +90,7 @@ exports.getDoctorProfile = async (req, res) => {
     }
 
     const profileImageUrl = doctor.profileImage 
-      ? `${process.env.BASE_URL}/${doctor.profileImage}`
+      ? `http://localhost:5000${doctor.profileImage}`
       : null;
 
     const responseData = {
@@ -79,11 +109,9 @@ exports.getDoctorProfile = async (req, res) => {
 
 exports.getAllDoctors = async (req, res) => {
   try {
-    console.log('✅ Checking if Doctor.find exists:', typeof Doctor.find === 'function');
-
     const doctors = await Doctor.find()
       .populate('userId', 'name email')
-      .lean(); 
+      .lean();
 
     const formattedDoctors = doctors.map(doctor => ({
       _id: doctor._id,
@@ -91,19 +119,20 @@ exports.getAllDoctors = async (req, res) => {
       email: doctor.userId?.email || 'No email',
       specialty: doctor.specialty,
       qualifications: doctor.qualifications,
-      profileImage: doctor.profileImage ? `${process.env.BASE_URL}/${doctor.profileImage}` : null,
+      profileImage: doctor.profileImage 
+        ? doctor.profileImage.startsWith('http') 
+          ? doctor.profileImage 
+          : `http://localhost:5000${doctor.profileImage}`
+        : null,
       availableSlots: doctor.availableSlots || [],
     }));
 
-    console.log("📋 Retrieved Doctors:", formattedDoctors);
     res.status(200).json(formattedDoctors);
   } catch (err) {
-    console.error("❌ Error fetching doctors:", err.message);
+    console.error("Error fetching doctors:", err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
-
-
 
 exports.updateAppointmentStatus = async (req, res) => {
   try {
@@ -131,22 +160,38 @@ exports.updateAppointmentStatus = async (req, res) => {
 
 exports.uploadProfileImage = async (req, res) => {
   try {
-      if (!req.file) {
-          return res.status(400).json({ message: "No file uploaded" });
-      }
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
 
-      const imagePath = `uploads/${req.file.filename}`;
-      const fullImageUrl = `${process.env.BASE_URL}/${imagePath}`;
+    const imageUrl = `/uploads/profiles/${req.file.filename}`;
+    
+    const filePath = path.join(__dirname, '../uploads/profiles', req.file.filename);
+    
+    if (!fs.existsSync(filePath)) {
+      console.error('File verification failed. Expected at:', filePath);
+      return res.status(500).json({ message: "File was not saved correctly" });
+    }
 
-      // Update doctor's profile in the database
-      const doctor = await Doctor.findByIdAndUpdate(
-          req.user.id,
-          { profileImage: imagePath },
-          { new: true }
-      );
+    const doctor = await Doctor.findOneAndUpdate(
+      { userId: req.user.userId },
+      { profileImage: imageUrl },
+      { new: true }
+    );
 
-      res.json({ profileImage: fullImageUrl });
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    res.json({ 
+      profileImage: imageUrl,
+      message: "Profile image updated successfully" 
+    });
   } catch (error) {
-      res.status(500).json({ message: "Error uploading image", error: error.message });
+    console.error("Upload failed:", error);
+    res.status(500).json({ 
+      message: "Error uploading image",
+      error: error.message
+    });
   }
 };

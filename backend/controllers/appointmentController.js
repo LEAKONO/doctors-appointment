@@ -21,7 +21,6 @@ exports.bookAppointment = async (req, res) => {
 
         const isoDate = appointmentDate.toISOString();
 
-        // Atomically update the doctor and remove the slot
         const doctor = await Doctor.findOneAndUpdate(
             { _id: doctorId, availableSlots: isoDate },
             { $pull: { availableSlots: isoDate } },

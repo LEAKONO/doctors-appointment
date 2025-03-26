@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 
 const DoctorDashboard = () => {
   const [appointments, setAppointments] = useState([]);
-  const { user, updateUserProfile } = useAuth(); // Changed from setUser to updateUserProfile
+  const { user, updateUserProfile } = useAuth();
   const [loading, setLoading] = useState(true);
 
   const fetchAppointments = async () => {
@@ -18,15 +18,28 @@ const DoctorDashboard = () => {
       console.error("Error fetching appointments:", error);
     }
   };
-
   const fetchProfile = async () => {
     try {
       const { data } = await api.get('/doctors/profile');
       if (data) {
-        updateUserProfile(data); // Use the context's update function
+        // Clean up any existing double URLs
+        if (data.profileImage?.includes('http://localhost:5000/http://localhost:5000')) {
+          data.profileImage = data.profileImage.replace(
+            'http://localhost:5000/http://localhost:5000',
+            'http://localhost:5000'
+          );
+        }
+        // Ensure URL is properly formatted if missing protocol
+        else if (data.profileImage && !data.profileImage.startsWith('http')) {
+          data.profileImage = `http://localhost:5000${data.profileImage}`;
+        }
+        
+        updateUserProfile(data); 
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
+      // Optional: Add error toast/notification
+      toast.error("Failed to load profile data");
     }
   };
 
@@ -61,9 +74,10 @@ const DoctorDashboard = () => {
   const handleProfileUpdate = async (newData) => {
     try {
       await api.post('/doctors/profile', newData);
-      await fetchProfile(); // Refetch the latest profile data
+      await fetchProfile();
     } catch (error) {
       console.error("Profile update failed:", error);
+      alert(error.response?.data?.message || "Failed to update profile");
     }
   };
 
@@ -97,6 +111,9 @@ const DoctorDashboard = () => {
                   src={user?.doctorProfile?.profileImage || "/default-avatar.png"}
                   alt="Profile"
                   className="w-24 h-24 rounded-full border"
+                  onError={(e) => {
+                    e.target.src = "/default-avatar.png";
+                  }}
                 />
               )}
               <ProfileUpload onSuccess={handleProfileUpdate} />

@@ -70,7 +70,6 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
       <motion.nav 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -86,7 +85,6 @@ const LandingPage = () => {
               MedConnect
             </motion.h1>
             
-            {/* Desktop Navigation */}
             <div className="hidden md:flex space-x-4">
               <button 
                 onClick={() => scrollToSection('about')}
@@ -130,7 +128,6 @@ const LandingPage = () => {
               </motion.button>
             </div>
             
-            {/* Mobile menu button */}
             <div className="md:hidden flex items-center">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -150,7 +147,6 @@ const LandingPage = () => {
             </div>
           </div>
           
-          {/* Mobile Navigation */}
           {isMobileMenuOpen && (
             <motion.div 
               initial={{ opacity: 0, height: 0 }}
@@ -208,7 +204,6 @@ const LandingPage = () => {
         </div>
       </motion.nav>
 
-      {/* Hero Section */}
       <section className="relative py-32 bg-gradient-to-r from-blue-500 to-indigo-600 text-white overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[url('https://images.unsplash.com/photo-1579684385127-1ef15d508118?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80')] bg-cover bg-center"></div>
         <motion.div 
@@ -248,7 +243,6 @@ const LandingPage = () => {
         </motion.div>
       </section>
 
-      {/* About Section */}
       <section id="about" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <FadeIn>
@@ -276,7 +270,7 @@ const LandingPage = () => {
                     <p className="text-blue-700 font-medium">
                       "We believe technology should remove barriers to healthcare, not create them. That's why we've designed MedConnect to be simple, secure, and accessible to everyone."
                     </p>
-                    <p className="text-blue-600 mt-2">- Dr. Emmanuel Leakono, Founder</p>
+                    <p className="text-blue-600 mt-2">- Eng. Emmanuel Leakono, Founder</p>
                   </div>
                 </div>
                 <motion.button

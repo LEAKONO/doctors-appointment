@@ -21,7 +21,13 @@ const PatientDashboard = () => {
           api.get("/doctors/all-doctors"),
           api.get("/appointments/my-appointments"),
         ]);
-        setDoctors(doctorsRes.data || []);
+
+        const doctorsWithImages = doctorsRes.data.map((doctor) => ({
+          ...doctor,
+          profileImage: doctor.profileImage || "/default-profile.jpg",
+        }));
+
+        setDoctors(doctorsWithImages);
         setAppointments(appointmentsRes.data || []);
       } catch (err) {
         setError("Error fetching data");
@@ -37,7 +43,7 @@ const PatientDashboard = () => {
     try {
       const { data } = await api.post("/appointments/book", { doctorId, date });
       setAppointments((prevAppointments) => [...prevAppointments, data]);
-      setRefreshTrigger(prev => !prev); // Trigger refresh of doctor availability
+      setRefreshTrigger((prev) => !prev); // Trigger refresh of doctor availability
     } catch (err) {
       console.error("Error booking appointment:", err);
     }
@@ -60,22 +66,31 @@ const PatientDashboard = () => {
         </h1>
         <hr className="border-t-2 border-gray-300 mb-8 w-full" />
 
-        {/* Doctors List */}
         <section className="mb-12">
           <h2 className="text-xl font-semibold mb-4">Available Doctors</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {doctors.length > 0 ? (
               doctors.map((doctor) => (
-                <div key={doctor._id} className="bg-white p-6 rounded-lg shadow">
+                <div
+                  key={doctor._id}
+                  className="bg-white p-6 rounded-lg shadow"
+                >
                   <img
-                    src={doctor.profileImage || "/default-profile.jpg"}
+                    src={doctor.profileImage}
                     alt={doctor.name}
                     className="w-24 h-24 rounded-full mx-auto mb-4"
+                    onError={(e) => {
+                      e.target.src = "/default-profile.jpg";
+                    }}
                   />
                   <h3 className="text-lg font-bold">{doctor.name}</h3>
                   <p className="text-gray-600">{doctor.specialty}</p>
-                  <p className="text-gray-600 text-sm mt-2">{doctor.qualifications}</p>
-                  <h4 className="text-md font-semibold mt-4">Available Slots</h4>
+                  <p className="text-gray-600 text-sm mt-2">
+                    {doctor.qualifications}
+                  </p>
+                  <h4 className="text-md font-semibold mt-4">
+                    Available Slots
+                  </h4>
                   <ul>
                     {doctor.availableSlots?.length > 0 ? (
                       doctor.availableSlots.map((slot, index) => (
@@ -119,7 +134,10 @@ const PatientDashboard = () => {
                   appointments.map((appointment) => (
                     <tr key={appointment._id}>
                       <td>{appointment.patientId?.name || "N/A"}</td>
-                      <td>{appointment.doctorId?.userId?.name || "Doctor not found"}</td>
+                      <td>
+                        {appointment.doctorId?.userId?.name ||
+                          "Doctor not found"}
+                      </td>
                       <td>{new Date(appointment.date).toLocaleString()}</td>
                       <td>{appointment.status}</td>
                     </tr>

@@ -136,28 +136,101 @@ exports.getAllDoctors = async (req, res) => {
 
 exports.updateAppointmentStatus = async (req, res) => {
   try {
-    const appointment = await Appointment.findById(req.params.id)
-      .populate('patientId', 'email name');
-    
-    if (!appointment) return res.status(404).json({ msg: 'Appointment not found' });
+    const { id } = req.params;
+    const { status } = req.body;
 
-    appointment.status = req.body.status;
+    if (!['pending', 'confirmed', 'rejected'].includes(status)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid status. Must be one of: pending, confirmed, rejected' 
+      });
+    }
+
+    const appointment = await Appointment.findById(id)
+      .populate('patientId', 'name email')
+      .populate({
+        path: 'doctorId',
+        select: 'userId specialty',
+        populate: {
+          path: 'userId',
+          select: 'name email'
+        }
+      });
+
+    if (!appointment) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Appointment not found' 
+      });
+    }
+
+    const requestingDoctor = await Doctor.findOne({ userId: req.user.userId });
+    if (!requestingDoctor || !appointment.doctorId._id.equals(requestingDoctor._id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized to update this appointment'
+      });
+    }
+
+    appointment.status = status;
     await appointment.save();
 
     const formattedDate = new Date(appointment.date).toLocaleString();
-    await sendEmail(
-      appointment.patientId.email,
-      `Appointment ${req.body.status.charAt(0).toUpperCase() + req.body.status.slice(1)}`,
-      `Dear ${appointment.patientId.name},\n\nYour appointment on ${formattedDate} has been ${req.body.status}.\n\nBest regards,\nThe Medical Team`
-    );
+    const doctorName = appointment.doctorId?.userId?.name || 'Our Doctor';
+    const patientName = appointment.patientId?.name || 'Patient';
 
-    res.json(appointment);
+    if (status === 'confirmed') {
+      await sendEmail(
+        appointment.patientId.email,
+        `Appointment Confirmed with Dr. ${doctorName}`,
+        `Dear ${patientName},\n\n` +
+        `Your appointment on ${formattedDate} with Dr. ${doctorName} (${appointment.doctorId.specialty}) has been confirmed.\n\n` +
+        `We look forward to seeing you!\n\n` +
+        `Best regards,\nThe Medical Team`
+      );
+    } else if (status === 'rejected') {
+      await sendEmail(
+        appointment.patientId.email,
+        `Appointment Cancellation Notice`,
+        `Dear ${patientName},\n\n` +
+        `We regret to inform you that your appointment on ${formattedDate} with Dr. ${doctorName} (${appointment.doctorId.specialty}) has been cancelled.\n\n` +
+        `Please contact our office to reschedule or for more information.\n\n` +
+        `We apologize for any inconvenience.\n\n` +
+        `Best regards,\nThe Medical Team`
+      );
+    }
+
+    res.json({
+      success: true,
+      appointment: {
+        _id: appointment._id,
+        date: appointment.date,
+        status: appointment.status,
+        patientId: {
+          _id: appointment.patientId._id,
+          name: appointment.patientId.name,
+          email: appointment.patientId.email
+        },
+        doctorId: {
+          _id: appointment.doctorId._id,
+          specialty: appointment.doctorId.specialty,
+          userId: {
+            _id: appointment.doctorId.userId._id,
+            name: appointment.doctorId.userId.name
+          }
+        }
+      }
+    });
+
   } catch (err) {
     console.error("❌ Error in updateAppointmentStatus:", err);
-    res.status(500).send('Server error');
+    res.status(500).json({ 
+      success: false,
+      message: "Server error",
+      error: err.message 
+    });
   }
 };
-
 exports.uploadProfileImage = async (req, res) => {
   try {
     if (!req.file) {

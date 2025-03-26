@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
-import Sidebar from '../components/Sidebar';
-import AvailabilityCalendar from '../components/AvailabilityCalendar';
-import ProfileUpload from '../components/ProfileUpload';
-import api from '../api/axios';
-import { useAuth } from '../context/AuthContext';
+import { useEffect, useState } from "react";
+import Sidebar from "../components/Sidebar";
+import AvailabilityCalendar from "../components/AvailabilityCalendar";
+import ProfileUpload from "../components/ProfileUpload";
+import api from "../api/axios";
+import { toast } from "react-hot-toast";
+
+import { useAuth } from "../context/AuthContext";
 
 const DoctorDashboard = () => {
   const [appointments, setAppointments] = useState([]);
@@ -12,7 +14,7 @@ const DoctorDashboard = () => {
 
   const fetchAppointments = async () => {
     try {
-      const { data } = await api.get('/doctors/appointments');
+      const { data } = await api.get("/doctors/appointments");
       setAppointments(data || []);
     } catch (error) {
       console.error("Error fetching appointments:", error);
@@ -20,21 +22,23 @@ const DoctorDashboard = () => {
   };
   const fetchProfile = async () => {
     try {
-      const { data } = await api.get('/doctors/profile');
+      const { data } = await api.get("/doctors/profile");
       if (data) {
         // Clean up any existing double URLs
-        if (data.profileImage?.includes('http://localhost:5000/http://localhost:5000')) {
+        if (
+          data.profileImage?.includes(
+            "http://localhost:5000/http://localhost:5000"
+          )
+        ) {
           data.profileImage = data.profileImage.replace(
-            'http://localhost:5000/http://localhost:5000',
-            'http://localhost:5000'
+            "http://localhost:5000/http://localhost:5000",
+            "http://localhost:5000"
           );
-        }
-        // Ensure URL is properly formatted if missing protocol
-        else if (data.profileImage && !data.profileImage.startsWith('http')) {
+        } else if (data.profileImage && !data.profileImage.startsWith("http")) {
           data.profileImage = `http://localhost:5000${data.profileImage}`;
         }
-        
-        updateUserProfile(data); 
+
+        updateUserProfile(data);
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -61,19 +65,33 @@ const DoctorDashboard = () => {
   const updateStatus = async (appointmentId, status) => {
     try {
       const { data } = await api.put(`/doctors/appointments/${appointmentId}`, { status });
-      setAppointments(prev =>
-        prev.map(appointment => 
-          appointment._id === appointmentId ? data : appointment
-        )
-      );
+      
+      if (data?.success) {
+        setAppointments(prev =>
+          prev.map(appointment => 
+            appointment._id === appointmentId ? { 
+              ...appointment, 
+              status: data.appointment.status,
+              doctorId: appointment.doctorId._id === data.appointment.doctorId._id ? {
+                ...appointment.doctorId,
+                ...data.appointment.doctorId
+              } : appointment.doctorId
+            } : appointment
+          )
+        );
+        toast.success(`Status updated to ${status}`);
+      } else {
+        toast.error(data?.message || "Failed to update status");
+      }
     } catch (error) {
       console.error("Error updating status:", error);
+      toast.error(error.response?.data?.message || "Failed to update appointment status");
     }
   };
 
   const handleProfileUpdate = async (newData) => {
     try {
-      await api.post('/doctors/profile', newData);
+      await api.post("/doctors/profile", newData);
       await fetchProfile();
     } catch (error) {
       console.error("Profile update failed:", error);
@@ -90,13 +108,9 @@ const DoctorDashboard = () => {
     <div className="flex min-h-screen">
       <Sidebar role="doctor" />
       <main className="flex-1 p-4 md:p-8">
-        <h1 className="text-2xl font-bold mb-2">
-          {getDisplayName()}
-        </h1>
+        <h1 className="text-2xl font-bold mb-2">{getDisplayName()}</h1>
 
-        {user?.email && (
-          <p className="text-gray-600 mb-4">{user.email}</p>
-        )}
+        {user?.email && <p className="text-gray-600 mb-4">{user.email}</p>}
 
         <div className="w-full border-b-4 border-green-500 mb-8"></div>
 
@@ -108,7 +122,9 @@ const DoctorDashboard = () => {
                 <p>Loading profile...</p>
               ) : (
                 <img
-                  src={user?.doctorProfile?.profileImage || "/default-avatar.png"}
+                  src={
+                    user?.doctorProfile?.profileImage || "/default-avatar.png"
+                  }
                   alt="Profile"
                   className="w-24 h-24 rounded-full border"
                   onError={(e) => {
@@ -140,9 +156,11 @@ const DoctorDashboard = () => {
               </thead>
               <tbody>
                 {appointments.length > 0 ? (
-                  appointments.map(appointment => (
+                  appointments.map((appointment) => (
                     <tr key={appointment._id} className="border">
-                      <td className="p-2 border">{appointment.patientId?.name || "Unknown"}</td>
+                      <td className="p-2 border">
+                        {appointment.patientId?.name || "Unknown"}
+                      </td>
                       <td className="p-2 border">
                         {new Date(appointment.date).toLocaleString()}
                       </td>
@@ -150,12 +168,14 @@ const DoctorDashboard = () => {
                       <td className="p-2 border">
                         <select
                           value={appointment.status}
-                          onChange={(e) => updateStatus(appointment._id, e.target.value)}
+                          onChange={(e) =>
+                            updateStatus(appointment._id, e.target.value)
+                          }
                           className="border rounded px-2 py-1"
                         >
                           <option value="pending">Pending</option>
                           <option value="confirmed">Confirmed</option>
-                          <option value="cancelled">Cancelled</option>
+                          <option value="rejected">Rejected</option>
                         </select>
                       </td>
                     </tr>
@@ -163,7 +183,9 @@ const DoctorDashboard = () => {
                 ) : (
                   <tr>
                     <td colSpan="4" className="p-4 text-center">
-                      {loading ? "Loading appointments..." : "No appointments available."}
+                      {loading
+                        ? "Loading appointments..."
+                        : "No appointments available."}
                     </td>
                   </tr>
                 )}

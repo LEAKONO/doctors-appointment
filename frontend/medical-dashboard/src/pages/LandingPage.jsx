@@ -1054,58 +1054,79 @@ const LandingPage = () => {
                   <h3 className="text-2xl font-bold mb-6 text-gray-800">
                     Send us a message
                   </h3>
-                  <form className="space-y-5">
-                    <div>
-                      <label htmlFor="name" className="block text-gray-700 mb-2 font-medium">Your Name</label>
-                      <input 
-                        type="text" 
-                        id="name" 
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                        placeholder="John Doe"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="email" className="block text-gray-700 mb-2 font-medium">Email Address</label>
-                      <input 
-                        type="email" 
-                        id="email" 
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                        placeholder="you@example.com"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="subject" className="block text-gray-700 mb-2 font-medium">Subject</label>
-                      <select
-                        id="subject"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                      >
-                        <option>General Inquiry</option>
-                        <option>Technical Support</option>
-                        <option>Billing Question</option>
-                        <option>Feedback</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label htmlFor="message" className="block text-gray-700 mb-2 font-medium">Your Message</label>
-                      <textarea 
-                        id="message" 
-                        rows="5" 
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                        placeholder="How can we help you?"
-                      ></textarea>
-                    </div>
-                    <motion.button
-                      whileHover={{ 
-                        scale: 1.02,
-                        boxShadow: '0 5px 15px rgba(37, 99, 235, 0.3)'
-                      }}
-                      whileTap={{ scale: 0.98 }}
-                      type="submit" 
-                      className="w-full px-6 py-4 rounded-full font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all"
-                    >
-                      Send Message
-                    </motion.button>
-                  </form>
+                  <form 
+  action="https://formsubmit.co/leakonoemmanuel3@gmail.com" 
+  method="POST"
+  className="space-y-5"
+>
+  <input type="hidden" name="_next" value="https://yourwebsite.com/thank-you" />
+  <input type="hidden" name="_subject" value="New Message from MedConnect!" />
+  <input type="hidden" name="_captcha" value="false" />
+  
+  <div>
+    <label htmlFor="name" className="block text-gray-700 mb-2 font-medium">Your Name</label>
+    <input 
+      type="text" 
+      id="name" 
+      name="name"  
+      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+      placeholder="John Doe"
+      required
+    />
+  </div>
+  
+  <div>
+    <label htmlFor="email" className="block text-gray-700 mb-2 font-medium">Email Address</label>
+    <input 
+      type="email" 
+      id="email" 
+      name="email"  
+      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+      placeholder="you@example.com"
+      required
+    />
+  </div>
+  
+  <div>
+    <label htmlFor="subject" className="block text-gray-700 mb-2 font-medium">Subject</label>
+    <select
+      id="subject"
+      name="subject"  
+      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+      required
+    >
+      <option value="" disabled selected>Select a subject</option>
+      <option value="General Inquiry">General Inquiry</option>
+      <option value="Technical Support">Technical Support</option>
+      <option value="Billing Question">Billing Question</option>
+      <option value="Feedback">Feedback</option>
+    </select>
+  </div>
+  
+  <div>
+    <label htmlFor="message" className="block text-gray-700 mb-2 font-medium">Your Message</label>
+    <textarea 
+      id="message" 
+      name="message"  
+      rows="5" 
+      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+      placeholder="How can we help you?"
+      required
+    ></textarea>
+  </div>
+  
+  <motion.button
+    whileHover={{ 
+      scale: 1.02,
+      boxShadow: '0 5px 15px rgba(37, 99, 235, 0.3)'
+    }}
+    whileTap={{ scale: 0.98 }}
+    type="submit" 
+    className="w-full px-6 py-4 rounded-full font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all"
+  >
+    Send Message
+  </motion.button>
+</form>
                 </motion.div>
               </div>
             </div>
@@ -1133,7 +1154,7 @@ const LandingPage = () => {
                   Bridging the gap between patients and quality healthcare through innovative telemedicine solutions.
                 </p>
                 <div className="flex space-x-4">
-                  {['twitter', 'facebook', 'instagram', 'linkedin'].map((social) => (
+                  {['twitter'].map((social) => (
                     <motion.a 
                       key={social}
                       whileHover={{ y: -3, color: '#60a5fa' }}

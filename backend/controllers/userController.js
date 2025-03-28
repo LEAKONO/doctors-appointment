@@ -202,16 +202,21 @@ exports.upgradeToDoctor = async (req, res) => {
     user.doctorProfile = doctor._id;
     await user.save();
 
+    const loginUrl = "https://yourapp.com/doctor-dashboard";
+
     const subject = "Your Doctor Account is Ready!";
     const message = `
       Dear ${user.name},
 
-      Congratulations! Your account has been successfully upgraded, and you are now registered as a doctor.
+      🎉 Congratulations! Your account has been successfully upgraded, and you are now registered as a doctor.
 
-      🔹 Specialty: ${specialty}
-      🔹 Qualifications: ${qualifications}
+      🔹 Specialty: ${specialty}  
+      🔹 Qualifications: ${qualifications}  
 
-      You can now log in to the system and access your doctor dashboard.
+      Next steps:  
+      ✅ Log in to your doctor dashboard: [Click here to log in](${loginUrl})  
+      ✅ Upload your profile image  
+      ✅ Set your availability time  
 
       Best regards,  
       Healthcare Team
@@ -245,6 +250,7 @@ exports.upgradeToDoctor = async (req, res) => {
     });
   }
 };
+
 exports.deleteUser = async (req, res) => {
   try {
     const { userId } = req.params;

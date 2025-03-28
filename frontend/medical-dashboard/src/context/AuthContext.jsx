@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
@@ -6,89 +6,117 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const storedUser = localStorage.getItem("user");
-    return storedUser ? JSON.parse(storedUser) : null;
+    try {
+      const storedUser = localStorage.getItem("user");
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch (error) {
+      console.error("Failed to parse user data", error);
+      return null;
+    }
   });
   
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
+
+  const updateLocalStorage = useCallback((userData) => {
+    try {
+      localStorage.setItem("user", JSON.stringify(userData));
+    } catch (error) {
+      console.error("Failed to save user data", error);
+    }
+  }, []);
 
   const login = async (email, password) => {
     try {
-      const { data } = await api.post("/users/login", { email, password });
-      localStorage.setItem("token", data.token);
+      setLoading(true);
+      setError(null);
       
-      const userData = {
-        id: data.userId,
-        name: data.name,
-        email: data.email,
-        role: data.role || 'patient', 
+      const { data: authData } = await api.post("/users/login", { email, password });
+      localStorage.setItem("token", authData.token);
+
+      const { data: userData } = await api.get("/users/me");
+      
+      const completeUser = {
+        id: userData._id,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role || 'patient',
         doctorProfile: null
       };
 
-      setUser(userData);
-      localStorage.setItem("user", JSON.stringify(userData));
-
-      if (data.role === 'doctor') {
+      if (completeUser.role === 'doctor') {
         try {
-          const profileRes = await api.get("/doctors/profile");
-          setUser(prev => {
-            const updatedUser = {
-              ...prev,
-              doctorProfile: profileRes.data
-            };
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-            return updatedUser;
-          });
+          const { data: profileData } = await api.get("/doctors/profile");
+          completeUser.doctorProfile = profileData;
         } catch (profileError) {
-          console.error("Couldn't fetch doctor profile", profileError);
+          console.error("Doctor profile fetch error:", profileError);
         }
       }
 
-      navigate(`/${data.role || 'patient'}`);
+      setUser(completeUser);
+      updateLocalStorage(completeUser);
+
+      navigate(`/${completeUser.role}`);
+      return completeUser;
+
     } catch (error) {
-      console.error("Login error:", error.response?.data?.message || error.message);
+      console.error("Login error:", error);
+      setError(error.response?.data?.message || "Login failed");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      setUser(null);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const register = async (userData) => {
     try {
+      setLoading(true);
+      setError(null);
+      
       const { data } = await api.post("/users/register", {
         name: userData.name,
         email: userData.email,
-        password: userData.password
+        password: userData.password,
+        role: userData.role || 'patient'
       });
 
       localStorage.setItem("token", data.token);
       
       const newUser = {
-        id: data.userId,
+        id: data.userId || data._id,
         name: data.name,
         email: data.email,
-        role: 'patient', 
+        role: data.role || 'patient',
         doctorProfile: null
       };
 
       setUser(newUser);
-      localStorage.setItem("user", JSON.stringify(newUser));
-      navigate('/patient'); 
+      updateLocalStorage(newUser);
+      navigate(`/${newUser.role}`);
 
       return data;
     } catch (error) {
       console.error("Registration error:", error);
+      setError(error.response?.data?.message || "Registration failed");
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
     navigate("/login");
-  };
+  }, [navigate]);
 
-  const updateUserProfile = (profileData) => {
+  const updateUserProfile = useCallback((profileData) => {
     setUser(prev => {
       if (!prev) return prev;
       
@@ -100,50 +128,59 @@ export const AuthProvider = ({ children }) => {
         }
       };
       
-      localStorage.setItem("user", JSON.stringify(updatedUser));
+      updateLocalStorage(updatedUser);
       return updatedUser;
     });
-  };
+  }, [updateLocalStorage]);
+
+  const checkAuth = useCallback(async () => {
+    setIsInitializing(true);
+    setError(null);
+    const token = localStorage.getItem("token");
+    
+    if (!token) {
+      setIsInitializing(false);
+      return;
+    }
+
+    try {
+      const { data } = await api.get("/users/me");
+      const userData = {
+        id: data._id,
+        name: data.name,
+        email: data.email,
+        role: data.role || 'patient',
+        doctorProfile: null
+      };
+
+      if (data.role === 'doctor') {
+        try {
+          const { data: profileData } = await api.get("/doctors/profile");
+          userData.doctorProfile = profileData;
+        } catch (profileError) {
+          console.error("Couldn't fetch doctor profile", profileError);
+        }
+      }
+
+      setUser(userData);
+      updateLocalStorage(userData);
+      
+      // Redirect if not on correct role-based route
+      const currentPath = window.location.pathname;
+      if (!currentPath.startsWith(`/${userData.role}`)) {
+        navigate(`/${userData.role}`);
+      }
+    } catch (error) {
+      console.error("Auth check failed:", error);
+      logout();
+    } finally {
+      setIsInitializing(false);
+    }
+  }, [logout, navigate, updateLocalStorage]);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const { data } = await api.get("/users/me");
-        const userData = {
-          id: data._id,
-          name: data.name,
-          email: data.email,
-          role: data.role || 'patient',
-          doctorProfile: null
-        };
-
-        if (data.role === 'doctor') {
-          try {
-            const profileRes = await api.get("/doctors/profile");
-            userData.doctorProfile = profileRes.data;
-          } catch (profileError) {
-            console.error("Couldn't fetch doctor profile", profileError);
-          }
-        }
-
-        setUser(userData);
-        localStorage.setItem("user", JSON.stringify(userData));
-      } catch (error) {
-        console.error("Auth check failed:", error);
-        logout();
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     checkAuth();
-  }, []);
+  }, [checkAuth]);
 
   return (
     <AuthContext.Provider 
@@ -151,9 +188,11 @@ export const AuthProvider = ({ children }) => {
         user, 
         setUser,
         login, 
-        register,
+        register, 
         logout, 
         loading,
+        isInitializing,
+        error,
         updateUserProfile
       }}
     >
@@ -162,4 +201,10 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

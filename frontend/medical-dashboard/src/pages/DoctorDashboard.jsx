@@ -4,32 +4,48 @@ import AvailabilityCalendar from "../components/AvailabilityCalendar";
 import ProfileUpload from "../components/ProfileUpload";
 import api from "../api/axios";
 import { toast } from "react-hot-toast";
-
 import { useAuth } from "../context/AuthContext";
+import { FiCalendar, FiUser, FiClock, FiCheckCircle, FiXCircle, FiLoader, FiMail, FiPhone } from "react-icons/fi";
+import { motion } from "framer-motion";
 
 const DoctorDashboard = () => {
   const [appointments, setAppointments] = useState([]);
   const { user, updateUserProfile } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("upcoming");
+  const [stats, setStats] = useState({
+    total: 0,
+    confirmed: 0,
+    pending: 0,
+    rejected: 0
+  });
 
   const fetchAppointments = async () => {
     try {
       const { data } = await api.get("/doctors/appointments");
       setAppointments(data || []);
+      
+      // Calculate stats
+      const now = new Date();
+      const stats = {
+        total: data.length,
+        confirmed: data.filter(a => a.status === 'confirmed' && new Date(a.date) >= now).length,
+        pending: data.filter(a => a.status === 'pending' && new Date(a.date) >= now).length,
+        rejected: data.filter(a => a.status === 'rejected' || new Date(a.date) < now).length
+      };
+      setStats(stats);
     } catch (error) {
       console.error("Error fetching appointments:", error);
+      toast.error("Failed to load appointments");
     }
   };
+
   const fetchProfile = async () => {
     try {
       const { data } = await api.get("/doctors/profile");
       if (data) {
         // Clean up any existing double URLs
-        if (
-          data.profileImage?.includes(
-            "http://localhost:5000/http://localhost:5000"
-          )
-        ) {
+        if (data.profileImage?.includes("http://localhost:5000/http://localhost:5000")) {
           data.profileImage = data.profileImage.replace(
             "http://localhost:5000/http://localhost:5000",
             "http://localhost:5000"
@@ -37,12 +53,10 @@ const DoctorDashboard = () => {
         } else if (data.profileImage && !data.profileImage.startsWith("http")) {
           data.profileImage = `http://localhost:5000${data.profileImage}`;
         }
-
         updateUserProfile(data);
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
-      // Optional: Add error toast/notification
       toast.error("Failed to load profile data");
     }
   };
@@ -79,7 +93,16 @@ const DoctorDashboard = () => {
             } : appointment
           )
         );
-        toast.success(`Status updated to ${status}`);
+        fetchData(); // Refresh stats
+        toast.success(`Appointment ${status}`, {
+          icon: status === 'confirmed' ? '✅' : status === 'rejected' ? '❌' : '🕒',
+          style: {
+            background: status === 'confirmed' ? '#f0fdf4' : 
+                       status === 'rejected' ? '#fef2f2' : '#fffbeb',
+            color: status === 'confirmed' ? '#166534' : 
+                  status === 'rejected' ? '#991b1b' : '#92400e',
+          }
+        });
       } else {
         toast.error(data?.message || "Failed to update status");
       }
@@ -93,9 +116,10 @@ const DoctorDashboard = () => {
     try {
       await api.post("/doctors/profile", newData);
       await fetchProfile();
+      toast.success("Profile updated successfully!");
     } catch (error) {
       console.error("Profile update failed:", error);
-      alert(error.response?.data?.message || "Failed to update profile");
+      toast.error(error.response?.data?.message || "Failed to update profile");
     }
   };
 
@@ -104,95 +128,296 @@ const DoctorDashboard = () => {
     return `Dr. ${user?.doctorProfile?.name || user?.name || "Unknown"}`;
   };
 
+  const filteredAppointments = appointments.filter(appointment => {
+    const now = new Date();
+    const appointmentDate = new Date(appointment.date);
+    
+    if (activeTab === "upcoming") return appointmentDate >= now;
+    if (activeTab === "past") return appointmentDate < now;
+    return true;
+  });
+
+  const getStatusIcon = (status) => {
+    switch(status) {
+      case 'confirmed':
+        return <FiCheckCircle className="text-green-500 mr-1" />;
+      case 'rejected':
+        return <FiXCircle className="text-red-500 mr-1" />;
+      case 'pending':
+        return <FiLoader className="text-yellow-500 mr-1 animate-spin" />;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <Sidebar role="doctor" />
+      
       <main className="flex-1 p-4 md:p-8">
-        <h1 className="text-2xl font-bold mb-2">{getDisplayName()}</h1>
+        {/* Header Section */}
+        <div className="mb-8">
+          <motion.h1 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-3xl font-bold text-gray-800 mb-1"
+          >
+            {getDisplayName()}
+          </motion.h1>
+          
+          {user?.email && (
+            <p className="text-gray-600 mb-4 flex items-center">
+              <FiMail className="mr-2" /> {user.email}
+            </p>
+          )}
+          
+          <div className="w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mb-6"></div>
+        </div>
 
-        {user?.email && <p className="text-gray-600 mb-4">{user.email}</p>}
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-xl shadow-md p-4 border-l-4 border-blue-500"
+          >
+            <h3 className="text-sm font-medium text-gray-500">Total Appointments</h3>
+            <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-xl shadow-md p-4 border-l-4 border-green-500"
+          >
+            <h3 className="text-sm font-medium text-gray-500">Confirmed</h3>
+            <p className="text-2xl font-bold text-gray-800">{stats.confirmed}</p>
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-xl shadow-md p-4 border-l-4 border-yellow-500"
+          >
+            <h3 className="text-sm font-medium text-gray-500">Pending</h3>
+            <p className="text-2xl font-bold text-gray-800">{stats.pending}</p>
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white rounded-xl shadow-md p-4 border-l-4 border-red-500"
+          >
+            <h3 className="text-sm font-medium text-gray-500">Rejected/Past</h3>
+            <p className="text-2xl font-bold text-gray-800">{stats.rejected}</p>
+          </motion.div>
+        </div>
 
-        <div className="w-full border-b-4 border-green-500 mb-8"></div>
+        {/* Profile and Availability Cards */}
+        <div className="grid md:grid-cols-2 gap-8 mb-8">
+          {/* Profile Card */}
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-xl shadow-lg p-6 border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-800 flex items-center">
+                <FiUser className="mr-2 text-blue-500" />
+                Profile Settings
+              </h2>
+            </div>
+            
+            <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
+              <div className="relative">
+                {loading ? (
+                  <div className="w-24 h-24 rounded-full bg-gray-200 animate-pulse"></div>
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-4xl font-bold text-blue-600 border-4 border-white shadow-md">
+                    {user?.doctorProfile?.name?.charAt(0) || user?.name?.charAt(0) || "D"}
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex-1 w-full">
+                <ProfileUpload onSuccess={handleProfileUpdate} />
+                <div className="mt-4 space-y-2">
+                  {user?.doctorProfile?.specialty && (
+                    <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium inline-block">
+                      {user.doctorProfile.specialty}
+                    </div>
+                  )}
+                  {user?.doctorProfile?.phone && (
+                    <div className="flex items-center text-gray-600">
+                      <FiPhone className="mr-2" /> {user.doctorProfile.phone}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          <div id="profile-section">
-            <h2 className="text-xl font-semibold mb-4">Profile Settings</h2>
-            <div className="flex items-center space-x-4">
-              {loading ? (
-                <p>Loading profile...</p>
-              ) : (
-                <img
-                  src={
-                    user?.doctorProfile?.profileImage || "/default-avatar.png"
-                  }
-                  alt="Profile"
-                  className="w-24 h-24 rounded-full border"
-                  onError={(e) => {
-                    e.target.src = "/default-avatar.png";
-                  }}
-                />
-              )}
-              <ProfileUpload onSuccess={handleProfileUpdate} />
+          {/* Availability Card */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-xl shadow-lg p-6 border border-gray-100"
+          >
+            <h2 className="text-xl font-semibold text-gray-800 flex items-center mb-4">
+              <FiCalendar className="mr-2 text-blue-500" />
+              Set Availability
+            </h2>
+            <AvailabilityCalendar onUpdate={fetchData} />
+          </motion.div>
+        </div>
+
+        {/* Appointments Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-xl shadow-lg p-6 border border-gray-100"
+        >
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 space-y-4 md:space-y-0">
+            <h2 className="text-xl font-semibold text-gray-800 flex items-center">
+              <FiClock className="mr-2 text-blue-500" />
+              Appointments Management
+            </h2>
+            
+            <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg">
+              <button
+                onClick={() => setActiveTab("upcoming")}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  activeTab === "upcoming" ? "bg-blue-500 text-white shadow-sm" : "text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                Upcoming
+              </button>
+              <button
+                onClick={() => setActiveTab("past")}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  activeTab === "past" ? "bg-blue-500 text-white shadow-sm" : "text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                Past
+              </button>
+              <button
+                onClick={() => setActiveTab("all")}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  activeTab === "all" ? "bg-blue-500 text-white shadow-sm" : "text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                All
+              </button>
             </div>
           </div>
 
-          <div id="availability-section">
-            <h2 className="text-xl font-semibold mb-4">Set Availability</h2>
-            <AvailabilityCalendar onUpdate={fetchData} />
-          </div>
-        </div>
-
-        <section id="appointments-section" className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Appointments</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="p-2 border">Patient</th>
-                  <th className="p-2 border">Date</th>
-                  <th className="p-2 border">Status</th>
-                  <th className="p-2 border">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {appointments.length > 0 ? (
-                  appointments.map((appointment) => (
-                    <tr key={appointment._id} className="border">
-                      <td className="p-2 border">
-                        {appointment.patientId?.name || "Unknown"}
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : filteredAppointments.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-max">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Patient Details
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Appointment
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredAppointments.map((appointment) => (
+                    <motion.tr 
+                      key={appointment._id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <div className="text-sm font-medium text-gray-900">
+                            {appointment.patientId?.name || "Anonymous Patient"}
+                          </div>
+                          {appointment.patientId?.email && (
+                            <div className="text-sm text-gray-500 flex items-center mt-1">
+                              <FiMail className="mr-1.5" /> {appointment.patientId.email}
+                            </div>
+                          )}
+                        </div>
                       </td>
-                      <td className="p-2 border">
-                        {new Date(appointment.date).toLocaleString()}
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 font-medium">
+                          {new Date(appointment.date).toLocaleDateString([], {
+                            weekday: 'short',
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {new Date(appointment.date).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
                       </td>
-                      <td className="p-2 border">{appointment.status}</td>
-                      <td className="p-2 border">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          {getStatusIcon(appointment.status)}
+                          <span className={`text-sm font-medium ${
+                            appointment.status === 'confirmed' ? 'text-green-600' :
+                            appointment.status === 'rejected' ? 'text-red-600' : 'text-yellow-600'
+                          }`}>
+                            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
                         <select
                           value={appointment.status}
-                          onChange={(e) =>
-                            updateStatus(appointment._id, e.target.value)
-                          }
-                          className="border rounded px-2 py-1"
+                          onChange={(e) => updateStatus(appointment._id, e.target.value)}
+                          className="block w-full pl-3 pr-10 py-2 text-sm border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md shadow-sm"
                         >
                           <option value="pending">Pending</option>
                           <option value="confirmed">Confirmed</option>
                           <option value="rejected">Rejected</option>
                         </select>
                       </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="p-4 text-center">
-                      {loading
-                        ? "Loading appointments..."
-                        : "No appointments available."}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <FiCalendar className="mx-auto text-4xl text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900">
+                No {activeTab} appointments
+              </h3>
+              <p className="mt-1 text-sm text-gray-500 max-w-md mx-auto">
+                {activeTab === 'upcoming' ? 
+                  "You currently don't have any upcoming appointments. New appointments will appear here when patients book with you." : 
+                  "Your past appointment history will appear here."}
+              </p>
+            </div>
+          )}
+        </motion.section>
       </main>
     </div>
   );

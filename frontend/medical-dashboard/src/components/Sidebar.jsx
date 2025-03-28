@@ -24,16 +24,19 @@ const Sidebar = ({ role }) => {
       { name: "Home", path: "/patient", icon: <Home size={20} /> },
       { name: "Appointments", scrollId: "appointments-section", icon: <Calendar size={20} /> },
       { name: "Profile", path: "/profile", icon: <User size={20} /> },
+      { name: "Logout", action: logout, icon: <LogOut size={20} />, isLogout: true },
     ],
     doctor: [
       { name: "Appointments", scrollId: "appointments-section", icon: <Calendar size={20} /> },
       { name: "Set Availability", scrollId: "availability-section", icon: <Calendar size={20} /> },
       { name: "Profile", path: "/profile", icon: <User size={20} /> },
+      { name: "Logout", action: logout, icon: <LogOut size={20} />, isLogout: true },
     ],
     admin: [
       { name: "Users", path: "/admin", icon: <Users size={20} /> },
       { name: "Manage Doctors", scrollId: "manage-doctors-section", icon: <User size={20} /> },
       { name: "Profile", scrollId: "profile-section", icon: <User size={20} /> },
+      { name: "Logout", action: logout, icon: <LogOut size={20} />, isLogout: true },
     ],
   };
 
@@ -61,30 +64,33 @@ const Sidebar = ({ role }) => {
             <p className="text-sm text-gray-300 truncate">{user?.email}</p>
           </div>
 
-          {/* Navigation Items - Removed overflow-y-auto */}
+          {/* Navigation Items */}
           <nav className="p-4 space-y-2 flex-1">
-            {navItems[role].map((item) => (
-              <div
-                key={item.name}
-                onClick={() => handleNavClick(item)}
-                className={`flex items-center gap-2 p-2 rounded-md transition-colors cursor-pointer ${
-                  location.pathname === item.path ? "bg-gray-700" : "hover:bg-gray-800"
-                }`}
-              >
-                {item.icon} {item.name}
-              </div>
-            ))}
+            {navItems[role].map((item) => {
+              if (item.isLogout) {
+                return (
+                  <div
+                    key={item.name}
+                    onClick={item.action}
+                    className="flex items-center gap-2 p-2 rounded-md transition-colors cursor-pointer hover:bg-red-700 text-red-400"
+                  >
+                    {item.icon} {item.name}
+                  </div>
+                );
+              }
+              return (
+                <div
+                  key={item.name}
+                  onClick={() => item.action ? item.action() : handleNavClick(item)}
+                  className={`flex items-center gap-2 p-2 rounded-md transition-colors cursor-pointer ${
+                    location.pathname === item.path ? "bg-gray-700" : "hover:bg-gray-800"
+                  }`}
+                >
+                  {item.icon} {item.name}
+                </div>
+              );
+            })}
           </nav>
-
-          {/* Logout Button */}
-          <div className="p-4 border-t border-gray-700">
-            <button
-              onClick={logout}
-              className="flex items-center gap-2 w-full text-left p-2 hover:bg-red-700 rounded-md text-red-400 transition-colors"
-            >
-              <LogOut size={20} /> Logout
-            </button>
-          </div>
         </div>
       </aside>
     </>

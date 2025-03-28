@@ -107,16 +107,16 @@ exports.getMyAppointments = async (req, res) => {
     const appointments = await Appointment.find({ patientId: req.userId })
       .populate({
         path: 'doctorId',
-        match: { _id: { $exists: true } }, // Only include existing doctors
+        match: { _id: { $exists: true } },
         populate: {
           path: 'userId',
           select: 'name profileImage',
-          match: { _id: { $exists: true } } // Only include existing users
+          match: { _id: { $exists: true } }
         }
       })
       .populate({
         path: 'patientId',
-        match: { _id: { $exists: true } }, // Only include existing patients
+        match: { _id: { $exists: true } },
         select: 'name'
       })
       .sort({ date: -1 });
@@ -135,3 +135,78 @@ exports.getMyAppointments = async (req, res) => {
     });
   }
 };
+
+exports.cancelAppointment = async (req, res) => {
+    const { appointmentId } = req.params;
+  
+    try {
+      if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+        return res.status(400).json({ success: false, msg: 'Invalid appointment ID format' });
+      }
+  
+      const session = await mongoose.startSession();
+      session.startTransaction();
+  
+      try {
+        const appointment = await Appointment.findOne({
+          _id: appointmentId,
+          patientId: req.userId,
+          status: { $in: ['pending', 'confirmed'] }
+        }).session(session);
+  
+        if (!appointment) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(404).json({ success: false, msg: 'Appointment not found or already cancelled' });
+        }
+  
+        if (new Date(appointment.date) > new Date()) {
+          await Doctor.findByIdAndUpdate(
+            appointment.doctorId,
+            { $addToSet: { availableSlots: appointment.date } },
+            { session }
+          );
+        }
+  
+        await Appointment.deleteOne({ _id: appointmentId }).session(session);
+  
+        await session.commitTransaction();
+        session.endSession();
+  
+        const patient = await User.findById(req.userId).select('name email');
+        const doctor = await Doctor.findById(appointment.doctorId).populate('userId', 'name');
+        
+        if (patient && doctor?.userId) {
+          sendEmail(
+            patient.email,
+            "Appointment Cancelled",
+            `Dear ${patient.name},\n\nYour appointment with Dr. ${doctor.userId.name} has been cancelled.`
+          ).catch(console.error);
+        }
+  
+        if (doctor?.userId) {
+          Notification.create({
+            userId: doctor.userId._id,
+            message: `Appointment cancelled by ${patient.name}`,
+            type: 'appointment',
+            relatedId: appointmentId
+          }).catch(console.error);
+        }
+  
+        return res.json({ success: true, msg: 'Appointment deleted successfully' });
+  
+      } catch (transactionError) {
+        await session.abortTransaction();
+        session.endSession();
+        console.error("Transaction error:", transactionError);
+        throw transactionError;
+      }
+    } catch (err) {
+      console.error("Appointment cancellation error:", err);
+      return res.status(500).json({
+        success: false,
+        msg: 'Failed to delete appointment',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    }
+  };

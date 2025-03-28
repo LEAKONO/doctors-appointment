@@ -89,13 +89,12 @@ const DoctorDashboard = () => {
   useEffect(() => {
     fetchData();
 
-    // Real-time updates would go here
-    // const socket = io(API_URL);
-    // socket.on('patientDeleted', (data) => {
-    //   setAppointments(prev => prev.filter(app => app.patientId?._id !== data.userId));
-    //   fetchData(); // Refresh stats
-    // });
-    // return () => socket.disconnect();
+    // Set up polling for real-time updates
+    const interval = setInterval(() => {
+      fetchAppointments();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   const updateStatus = async (appointmentId, status) => {
@@ -342,7 +341,7 @@ const DoctorDashboard = () => {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-gray-200">
                   {filteredAppointments.map((appointment) => (
                     <motion.tr 
                       key={appointment._id}
@@ -394,7 +393,7 @@ const DoctorDashboard = () => {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <select
                           value={appointment.status}
                           onChange={(e) => updateStatus(appointment._id, e.target.value)}

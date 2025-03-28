@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { FiSearch, FiCalendar, FiUser, FiAward, FiAlertTriangle } from "react-icons/fi";
+import { FiSearch, FiCalendar, FiUser, FiAward, FiAlertTriangle, FiTrash2 } from "react-icons/fi";
 import Sidebar from "../components/Sidebar";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
@@ -23,6 +23,7 @@ const PatientDashboard = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(null);
+  const [deletingAppointment, setDeletingAppointment] = useState(null);
   const { user, isInitializing } = useAuth();
   const [imagesLoaded, setImagesLoaded] = useState({});
   const [appointmentImagesLoaded, setAppointmentImagesLoaded] = useState({});
@@ -127,14 +128,6 @@ const PatientDashboard = () => {
     if (!isInitializing) {
       fetchData();
     }
-
-    // Real-time updates would go here
-    // const socket = io(API_URL);
-    // socket.on('doctorDeleted', (data) => {
-    //   setDoctors(prev => prev.filter(doctor => doctor._id !== data.userId));
-    //   setAppointments(prev => prev.filter(app => app.doctorId?._id !== data.userId));
-    // });
-    // return () => socket.disconnect();
   }, [fetchData, isInitializing]);
 
   const bookAppointment = async (doctorId, slot) => {
@@ -247,6 +240,34 @@ const PatientDashboard = () => {
     }
   };
 
+  const cancelAppointment = async (appointmentId) => {
+    try {
+      setDeletingAppointment(appointmentId);
+      
+      // Optimistic update - remove the appointment completely
+      setAppointments(prev => prev.filter(app => app._id !== appointmentId));
+
+      showNotification('Appointment deleted successfully');
+
+      // Make API call to delete
+      await api.delete(`/appointments/cancel/${appointmentId}`);
+
+      // No need to refresh data since we did optimistic update
+      
+    } catch (err) {
+      console.error("Deletion error:", err);
+      
+      // Rollback optimistic update by refreshing data
+      await fetchData();
+
+      showNotification(
+        err.response?.data?.msg || err.message || "Failed to delete appointment",
+        "error"
+      );
+    } finally {
+      setDeletingAppointment(null);
+    }
+  };
   const handleImageLoad = (doctorId) => {
     setImagesLoaded(prev => ({...prev, [doctorId]: true}));
   };
@@ -471,6 +492,9 @@ const PatientDashboard = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -551,11 +575,27 @@ const PatientDashboard = () => {
                             {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
                           </span>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          {appointment.status !== 'cancelled' && (
+                            <button
+                              onClick={() => cancelAppointment(appointment._id)}
+                              disabled={deletingAppointment === appointment._id}
+                              className={`flex items-center space-x-1 px-3 py-1 rounded-lg transition duration-200 ${
+                                deletingAppointment === appointment._id
+                                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                                  : 'bg-red-100 text-red-600 hover:bg-red-200'
+                              }`}
+                            >
+                              <FiTrash2 className="text-sm" />
+                              <span>{deletingAppointment === appointment._id ? 'Cancelling...' : 'Cancel'}</span>
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="3" className="px-6 py-12 text-center">
+                      <td colSpan="4" className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <FiCalendar className="text-4xl text-gray-400 mb-4" />
                           <p className="text-gray-500 text-lg">No appointments scheduled yet</p>

@@ -194,7 +194,22 @@ exports.deleteUser = async (req, res) => {
       return res.status(403).json({ success: false, msg: "Unauthorized - Admin accounts cannot be deleted" });
     }
 
-    await userToDelete.remove({ session });
+    // Delete the user and all related data
+    if (userToDelete.role === "doctor") {
+      await Doctor.deleteOne({ userId: userToDelete._id }).session(session);
+    }
+    
+    // Delete all appointments related to this user
+    await Appointment.deleteMany({
+      $or: [
+        { patientId: userToDelete._id },
+        { doctorId: userToDelete.doctorProfile }
+      ]
+    }).session(session);
+
+    // Finally delete the user
+    await User.deleteOne({ _id: userToDelete._id }).session(session);
+
     await session.commitTransaction();
     session.endSession();
 

@@ -60,20 +60,19 @@ exports.getAppointments = async (req, res) => {
   try {
     const doctor = await Doctor.findOne({ 
       userId: req.user.userId,
-      isDeleted: { $ne: true } // Add isDeleted check
+      isDeleted: { $ne: true }
     });
     if (!doctor) return res.status(404).json({ msg: 'Doctor profile not found' });
 
     const appointments = await Appointment.find({ 
       doctorId: doctor._id,
-      patientId: { $exists: true, $ne: null } // Only show appointments with existing patients
+      status: { $ne: 'cancelled' } 
     }).populate({
       path: 'patientId',
-      match: { _id: { $exists: true }, isDeleted: { $ne: true } }, // Ensure patient exists and not deleted
+      match: { _id: { $exists: true }, isDeleted: { $ne: true } },
       select: 'name email'
     });
 
-    // Filter out any appointments with deleted patients
     const validAppointments = appointments.filter(app => app.patientId !== null);
     res.json(validAppointments);
   } catch (err) {
@@ -86,11 +85,11 @@ exports.getDoctorProfile = async (req, res) => {
   try {
     const doctor = await Doctor.findOne({ 
       userId: req.user.userId,
-      isDeleted: { $ne: true } // Add isDeleted check
+      isDeleted: { $ne: true } 
     })
       .populate({
         path: 'userId',
-        match: { isDeleted: { $ne: true } }, // Ensure user not deleted
+        match: { isDeleted: { $ne: true } }, 
         select: 'name email'
       })
       .select('-password');
@@ -111,10 +110,10 @@ exports.getDoctorProfile = async (req, res) => {
 
 exports.getAllDoctors = async (req, res) => {
   try {
-    const doctors = await Doctor.find({ isDeleted: { $ne: true } }) // Only fetch non-deleted doctors
+    const doctors = await Doctor.find({ isDeleted: { $ne: true } })
       .populate({
         path: 'userId',
-        match: { isDeleted: { $ne: true } }, // Only include doctors with existing and non-deleted users
+        match: { isDeleted: { $ne: true } }, 
         select: 'name email'
       })
       .lean();

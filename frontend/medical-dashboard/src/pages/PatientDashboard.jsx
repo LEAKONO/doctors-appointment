@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { FiSearch, FiCalendar, FiUser, FiAward } from "react-icons/fi";
+import { FiSearch, FiCalendar, FiUser, FiAward, FiAlertTriangle } from "react-icons/fi";
 import Sidebar from "../components/Sidebar";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { LoadingSpinner, SkeletonCard } from "../components/LoadingSpinner";
+import { toast } from "react-hot-toast";
 
 const FullPageLoader = () => (
   <div className="flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -83,7 +84,7 @@ const PatientDashboard = () => {
         return {
           ...appointment,
           date: new Date(appointment.date),
-          doctorId: {
+          doctorId: doctor ? {
             ...appointment.doctorId,
             userId: {
               _id: doctor?.userId?._id || doctor?.userId || "unknown",
@@ -91,7 +92,7 @@ const PatientDashboard = () => {
               specialty: doctor?.specialty || "General Practitioner"
             },
             profileImage: doctor?.profileImage || '/default-profile.jpg'
-          }
+          } : null
         };
       });
     } catch (err) {
@@ -126,6 +127,14 @@ const PatientDashboard = () => {
     if (!isInitializing) {
       fetchData();
     }
+
+    // Real-time updates would go here
+    // const socket = io(API_URL);
+    // socket.on('doctorDeleted', (data) => {
+    //   setDoctors(prev => prev.filter(doctor => doctor._id !== data.userId));
+    //   setAppointments(prev => prev.filter(app => app.doctorId?._id !== data.userId));
+    // });
+    // return () => socket.disconnect();
   }, [fetchData, isInitializing]);
 
   const bookAppointment = async (doctorId, slot) => {
@@ -140,7 +149,7 @@ const PatientDashboard = () => {
     try {
       setBookingLoading(`${doctorId}-${slot}`);
       
-      // Optimistic update - show changes immediately
+      // Optimistic update
       const newAppointment = {
         _id: tempAppointmentId,
         date: new Date(slot),
@@ -160,7 +169,6 @@ const PatientDashboard = () => {
         }
       };
 
-      // Update state immediately
       setAppointments(prev => [...prev, newAppointment]);
       setDoctors(prev => prev.map(d => {
         if (d._id === doctorId) {
@@ -172,16 +180,13 @@ const PatientDashboard = () => {
         return d;
       }));
 
-      // Show success immediately
       showNotification(`Appointment booked successfully!`);
 
-      // Scroll to appointments section
+      // Scroll to appointments
       setTimeout(() => {
         const element = document.getElementById('appointments-section');
         if (element) {
           element.scrollIntoView({ behavior: 'smooth' });
-          
-          // Highlight the new appointment
           const newAppointmentRow = document.getElementById(`appointment-${tempAppointmentId}`);
           if (newAppointmentRow) {
             newAppointmentRow.classList.add('bg-blue-50');
@@ -192,13 +197,13 @@ const PatientDashboard = () => {
         }
       }, 100);
 
-      // Make API call in background
+      // Make API call
       const response = await api.post("/appointments/book", { 
         doctorId, 
         date: slot
       });
 
-      // Update with real data from response instead of full refresh
+      // Update with real data
       if (response.data?.success) {
         const bookedAppointment = response.data.data;
         setAppointments(prev => prev.map(app => 
@@ -250,7 +255,6 @@ const PatientDashboard = () => {
     setAppointmentImagesLoaded(prev => ({...prev, [appointmentId]: true}));
   };
 
-  // Filter doctors based on search term
   const filteredDoctors = doctors.filter(doctor => 
     doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
     doctor.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -480,32 +484,43 @@ const PatientDashboard = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10 relative">
-                              {!appointmentImagesLoaded[appointment._id] && (
-                                <div className="absolute inset-0 rounded-full bg-gray-200 animate-pulse"></div>
+                              {appointment.doctorId ? (
+                                <>
+                                  {!appointmentImagesLoaded[appointment._id] && (
+                                    <div className="absolute inset-0 rounded-full bg-gray-200 animate-pulse"></div>
+                                  )}
+                                  <img 
+                                    className={`h-10 w-10 rounded-full object-cover ${
+                                      !appointmentImagesLoaded[appointment._id] ? 'opacity-0' : 'opacity-100'
+                                    }`}
+                                    src={appointment.doctorId?.profileImage || '/default-profile.jpg'} 
+                                    alt={appointment.doctorId?.userId?.name}
+                                    onLoad={() => handleAppointmentImageLoad(appointment._id)}
+                                    onError={(e) => {
+                                      e.target.src = "/default-profile.jpg";
+                                      handleAppointmentImageLoad(appointment._id);
+                                    }}
+                                  />
+                                </>
+                              ) : (
+                                <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                  <FiUser className="text-gray-400" />
+                                </div>
                               )}
-                              <img 
-                                className={`h-10 w-10 rounded-full object-cover ${
-                                  !appointmentImagesLoaded[appointment._id] ? 'opacity-0' : 'opacity-100'
-                                }`}
-                                src={appointment.doctorId?.profileImage || '/default-profile.jpg'} 
-                                alt={appointment.doctorId?.userId?.name}
-                                onLoad={() => handleAppointmentImageLoad(appointment._id)}
-                                onError={(e) => {
-                                  e.target.src = "/default-profile.jpg";
-                                  handleAppointmentImageLoad(appointment._id);
-                                }}
-                              />
                             </div>
                             <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
+                              <div className="text-sm font-medium text-gray-900 flex items-center">
+                                {!appointment.doctorId && (
+                                  <FiAlertTriangle className="text-yellow-500 mr-1" />
+                                )}
                                 {appointment.doctorId?.userId?.name || 
                                  appointment.doctorId?.name || 
-                                 "Unknown Doctor"}
+                                 "Doctor Deleted"}
                               </div>
                               <div className="text-sm text-gray-500">
                                 {appointment.doctorId?.userId?.specialty || 
                                  appointment.doctorId?.specialty || 
-                                 "General Practitioner"}
+                                 "Specialty not available"}
                               </div>
                             </div>
                           </div>

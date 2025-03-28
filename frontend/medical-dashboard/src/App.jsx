@@ -8,10 +8,10 @@ import DoctorDashboard from './pages/DoctorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
-  const { user, loading } = useAuth(); // Destructure the loading state and user from context
+  const { user, loading } = useAuth(); 
 
   if (loading) {
-    return <div>Loading...</div>; // Show a loading indicator while the user is being fetched
+    return <div>Loading...</div>; 
   }
 
   return (

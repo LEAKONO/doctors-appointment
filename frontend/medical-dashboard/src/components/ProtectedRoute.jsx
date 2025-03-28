@@ -12,7 +12,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   if (!allowedRoles.includes(user.role)) 
     return <Navigate to={`/${user.role}`} replace />;
   
-  return children; // Allow access to the children if the user is authorized
+  return children; 
 };
 
 export default ProtectedRoute;

@@ -5,7 +5,17 @@ import ProfileUpload from "../components/ProfileUpload";
 import api from "../api/axios";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
-import { FiCalendar, FiUser, FiClock, FiCheckCircle, FiXCircle, FiLoader, FiMail, FiPhone } from "react-icons/fi";
+import { 
+  FiCalendar, 
+  FiUser, 
+  FiClock, 
+  FiCheckCircle, 
+  FiXCircle, 
+  FiLoader, 
+  FiMail, 
+  FiPhone,
+  FiAlertTriangle
+} from "react-icons/fi";
 import { motion } from "framer-motion";
 
 const DoctorDashboard = () => {
@@ -23,7 +33,11 @@ const DoctorDashboard = () => {
   const fetchAppointments = async () => {
     try {
       const { data } = await api.get("/doctors/appointments");
-      setAppointments(data || []);
+      const processedData = data.map(appointment => ({
+        ...appointment,
+        patientId: appointment.patientId || { name: "Deleted Patient" }
+      }));
+      setAppointments(processedData);
       
       // Calculate stats
       const now = new Date();
@@ -74,6 +88,14 @@ const DoctorDashboard = () => {
 
   useEffect(() => {
     fetchData();
+
+    // Real-time updates would go here
+    // const socket = io(API_URL);
+    // socket.on('patientDeleted', (data) => {
+    //   setAppointments(prev => prev.filter(app => app.patientId?._id !== data.userId));
+    //   fetchData(); // Refresh stats
+    // });
+    // return () => socket.disconnect();
   }, []);
 
   const updateStatus = async (appointmentId, status) => {
@@ -176,45 +198,24 @@ const DoctorDashboard = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl shadow-md p-4 border-l-4 border-blue-500"
-          >
-            <h3 className="text-sm font-medium text-gray-500">Total Appointments</h3>
-            <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
-          </motion.div>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-xl shadow-md p-4 border-l-4 border-green-500"
-          >
-            <h3 className="text-sm font-medium text-gray-500">Confirmed</h3>
-            <p className="text-2xl font-bold text-gray-800">{stats.confirmed}</p>
-          </motion.div>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white rounded-xl shadow-md p-4 border-l-4 border-yellow-500"
-          >
-            <h3 className="text-sm font-medium text-gray-500">Pending</h3>
-            <p className="text-2xl font-bold text-gray-800">{stats.pending}</p>
-          </motion.div>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-white rounded-xl shadow-md p-4 border-l-4 border-red-500"
-          >
-            <h3 className="text-sm font-medium text-gray-500">Rejected/Past</h3>
-            <p className="text-2xl font-bold text-gray-800">{stats.rejected}</p>
-          </motion.div>
+          {Object.entries(stats).map(([key, value], index) => (
+            <motion.div 
+              key={key}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className={`bg-white rounded-xl shadow-md p-4 border-l-4 ${
+                key === 'total' ? 'border-blue-500' :
+                key === 'confirmed' ? 'border-green-500' :
+                key === 'pending' ? 'border-yellow-500' : 'border-red-500'
+              }`}
+            >
+              <h3 className="text-sm font-medium text-gray-500 capitalize">
+                {key.replace('_', ' ')}
+              </h3>
+              <p className="text-2xl font-bold text-gray-800">{value}</p>
+            </motion.div>
+          ))}
         </div>
 
         {/* Profile and Availability Cards */}
@@ -351,13 +352,18 @@ const DoctorDashboard = () => {
                     >
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <div className="text-sm font-medium text-gray-900">
-                            {appointment.patientId?.name || "Anonymous Patient"}
+                          <div className="text-sm font-medium text-gray-900 flex items-center">
+                            {!appointment.patientId?._id && (
+                              <FiAlertTriangle className="text-yellow-500 mr-1" />
+                            )}
+                            {appointment.patientId?.name || "Deleted Patient"}
                           </div>
-                          {appointment.patientId?.email && (
+                          {appointment.patientId?.email ? (
                             <div className="text-sm text-gray-500 flex items-center mt-1">
                               <FiMail className="mr-1.5" /> {appointment.patientId.email}
                             </div>
+                          ) : (
+                            <div className="text-sm text-gray-400 italic">Account deleted</div>
                           )}
                         </div>
                       </td>
@@ -393,6 +399,7 @@ const DoctorDashboard = () => {
                           value={appointment.status}
                           onChange={(e) => updateStatus(appointment._id, e.target.value)}
                           className="block w-full pl-3 pr-10 py-2 text-sm border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md shadow-sm"
+                          disabled={!appointment.patientId?._id}
                         >
                           <option value="pending">Pending</option>
                           <option value="confirmed">Confirmed</option>

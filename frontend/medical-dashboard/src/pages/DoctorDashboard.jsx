@@ -77,6 +77,7 @@ const DoctorDashboard = () => {
       });
     }
   };
+
   const fetchProfile = async () => {
     try {
       const { data } = await api.get("/doctors/profile");
@@ -149,25 +150,15 @@ const DoctorDashboard = () => {
     }
   };
 
-  const handleProfileUpdate = async (file) => {
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      
-      const { data } = await api.post('/doctors/upload-profile', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      if (data.success) {
-        await fetchProfile();
-        toast.success("Profile image updated successfully!");
+  const handleProfileUpdate = (profileImage) => {
+    updateUserProfile({
+      ...user,
+      doctorProfile: {
+        ...user.doctorProfile,
+        profileImage
       }
-    } catch (error) {
-      console.error("Profile update failed:", error);
-      toast.error(error.response?.data?.message || "Failed to update profile");
-    }
+    });
+    fetchProfile();
   };
 
   const getDisplayName = () => {
@@ -260,24 +251,27 @@ const DoctorDashboard = () => {
               <div className="relative">
                 {loading ? (
                   <div className="w-24 h-24 rounded-full bg-gray-200 animate-pulse"></div>
-                ) : user?.doctorProfile?.profileImage ? (
-                  <img
-                    src={user.doctorProfile.profileImage}
-                    alt="Profile"
-                    className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
-                    onError={(e) => {
-                      e.target.src = '/default-profile.jpg';
-                    }}
-                  />
                 ) : (
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-4xl font-bold text-blue-600 border-4 border-white shadow-md">
-                    {user?.doctorProfile?.name?.charAt(0) || user?.name?.charAt(0) || "D"}
-                  </div>
+                  <ProfileUpload onSuccess={handleProfileUpdate}>
+                    {user?.doctorProfile?.profileImage ? (
+                      <img
+                        src={`${user.doctorProfile.profileImage}?v=${Date.now()}`}
+                        alt="Profile"
+                        className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
+                        onError={(e) => {
+                          e.target.src = '/default-profile.jpg';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-4xl font-bold text-blue-600 border-4 border-white shadow-md">
+                        {user?.doctorProfile?.name?.charAt(0) || user?.name?.charAt(0) || "D"}
+                      </div>
+                    )}
+                  </ProfileUpload>
                 )}
               </div>
               
               <div className="flex-1 w-full">
-                <ProfileUpload onUpload={handleProfileUpdate} />
                 <div className="mt-4 space-y-2">
                   {user?.doctorProfile?.specialty && (
                     <div className="flex items-center">

@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { toast } from "react-hot-toast";
 import { FiUpload, FiImage } from "react-icons/fi";
 
-const ProfileUpload = ({ onSuccess }) => {
+const ProfileUpload = ({ onSuccess, children }) => {
   const { user, updateUserProfile } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [version, setVersion] = useState(0); // Force re-render
@@ -58,35 +58,39 @@ const ProfileUpload = ({ onSuccess }) => {
   });
 
   return (
-    <div {...getRootProps()} className={`p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-      isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
-    } ${isUploading ? 'opacity-70' : ''}`}>
+    <div {...getRootProps()} className={`relative ${isUploading ? 'opacity-70' : ''}`}>
       <input {...getInputProps()} />
-      <div className="flex flex-col items-center justify-center text-center">
-        {user?.doctorProfile?.profileImage ? (
-          <img
-            key={`${user.doctorProfile.profileImage}-${version}`}
-            src={`${user.doctorProfile.profileImage}?v=${version}`}
-            className="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-2 border-gray-200"
-            alt="Profile"
-            onError={(e) => {
-              e.target.src = "/default-avatar.png";
-            }}
-          />
-        ) : (
-          <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-            <FiImage className="text-gray-400 text-4xl" />
+      {children || (
+        <div className={`p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+          isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
+        }`}>
+          <div className="flex flex-col items-center justify-center text-center">
+            {user?.doctorProfile?.profileImage ? (
+              <img
+                key={`${user.doctorProfile.profileImage}-${version}`}
+                src={`${user.doctorProfile.profileImage}?v=${version}`}
+                className="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-2 border-gray-200"
+                alt="Profile"
+                onError={(e) => {
+                  e.target.src = "/default-avatar.png";
+                }}
+              />
+            ) : (
+              <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                <FiImage className="text-gray-400 text-4xl" />
+              </div>
+            )}
+            <p className="text-gray-600">
+              {isUploading ? "Uploading..." : 
+               isDragActive ? "Drop image here" : 
+               <><FiUpload className="inline mr-2" />Drag or click to upload</>}
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              JPEG, PNG, GIF, WEBP (Max 5MB)
+            </p>
           </div>
-        )}
-        <p className="text-gray-600">
-          {isUploading ? "Uploading..." : 
-           isDragActive ? "Drop image here" : 
-           <><FiUpload className="inline mr-2" />Drag or click to upload</>}
-        </p>
-        <p className="text-sm text-gray-500 mt-2">
-          JPEG, PNG, GIF, WEBP (Max 5MB)
-        </p>
-      </div>
+        </div>
+      )}
     </div>
   );
 };

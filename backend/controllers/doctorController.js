@@ -12,9 +12,8 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Utility function to clean up Cloudinary assets
 const deleteCloudinaryImage = async (imageUrl) => {
-  if (!imageUrl) return;
+  if (!imageUrl || !imageUrl.includes('cloudinary.com')) return;
   
   try {
     const publicId = imageUrl.split('/').slice(-2).join('/').split('.')[0];
@@ -71,7 +70,6 @@ exports.updateDoctorProfile = async (req, res) => {
       return res.status(404).json({ success: false, message: "Doctor not found" });
     }
 
-    // Update user name if provided
     if (name) {
       await User.findByIdAndUpdate(
         req.user.userId,
@@ -208,9 +206,8 @@ exports.getAllDoctors = async (req, res) => {
       })
       .lean();
 
-    // Safely format doctors data with null checks
     const formattedDoctors = doctors
-      .filter(doctor => doctor.userId !== null) // Filter out null users
+      .filter(doctor => doctor.userId !== null) 
       .map(doctor => ({
         _id: doctor._id,
         userId: doctor.userId?._id || null,
@@ -326,8 +323,23 @@ exports.uploadProfileImage = async (req, res) => {
     });
   }
 
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (!allowedTypes.includes(req.file.mimetype)) {
+    return res.status(400).json({
+      success: false,
+      message: "Only JPG, PNG, GIF, and WebP images are allowed"
+    });
+  }
+
+  const maxSize = 5 * 1024 * 1024;
+  if (req.file.size > maxSize) {
+    return res.status(400).json({
+      success: false,
+      message: "Image size exceeds 5MB limit"
+    });
+  }
+
   try {
-    // Find the doctor first to check for existing image
     const doctor = await Doctor.findOne({ 
       userId: req.user.userId,
       isDeleted: { $ne: true } 
@@ -340,12 +352,10 @@ exports.uploadProfileImage = async (req, res) => {
       });
     }
 
-    // Delete old image if exists
     if (doctor.profileImage) {
       await deleteCloudinaryImage(doctor.profileImage);
     }
 
-    // Upload new image with optimized settings
     const result = await cloudinary.uploader.upload(req.file.path, {
       folder: 'doctor_profiles',
       public_id: `profile_${req.user.userId}_${Date.now()}`,
@@ -356,9 +366,10 @@ exports.uploadProfileImage = async (req, res) => {
         { quality: 'auto:best' },
         { fetch_format: 'auto' }
       ]
+    }).catch(err => {
+      throw new Error(`Cloudinary upload failed: ${err.message}`);
     });
 
-    // Update doctor profile with new image URL
     doctor.profileImage = result.secure_url;
     await doctor.save();
 
@@ -369,15 +380,23 @@ exports.uploadProfileImage = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Upload error:", error);
+    console.error("Profile upload error:", {
+      message: error.message,
+      stack: error.stack,
+      file: req.file ? {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      } : null
+    });
+
     res.status(500).json({
       success: false,
-      message: "Failed to upload image",
+      message: "Failed to upload profile image",
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   } finally {
-    if (req.file && req.file.path) {
-      const fs = require('fs');
+    if (req.file?.path && fs.existsSync(req.file.path)) {
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('Error deleting temp file:', err);
       });

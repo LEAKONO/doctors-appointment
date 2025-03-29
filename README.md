@@ -1,164 +1,200 @@
-# Doctors Appointment
+# 🏥 Doctors Appointment System - Full Documentation
 
-## Overview
-This project is a comprehensive Healthcare Management System built with the **MERN stack** (MongoDB, Express.js, React, Node.js). It provides a RESTful API for managing users, doctors, appointments, and related healthcare services. The system supports three main user roles: **Admin, Doctor, and Patient**, each with specific permissions and functionalities.
+## 🌐 Live Demo
+[Doctors Appointment System](https://doctors-appointment-rjn9.vercel.app/)
 
-## 🔐 User Registration & Roles
-### 👤 Default User Role: Patient
-- All new users who sign up are automatically registered as patients.
-- Only admins can upgrade a patient to a doctor by filling in:
-  - **Specialty** (e.g., "Cardiology", "Neurology")
-  - **Qualifications** (e.g., "MD, PhD")
-  - **Profile Image** (optional)
+## 📌 Table of Contents
+- [Project Overview](#project-overview)
+- [Key Features](#key-features)
+- [User Roles & Workflows](#user-roles--workflows)
+- [Technology Stack](#technology-stack)
+- [API Documentation](#api-documentation)
+- [Installation Guide](#installation-guide)
+- [Demo Accounts](#demo-accounts)
+- [Future Enhancements](#future-enhancements)
+- [Contributing](#contributing)
+- [License](#license)
 
-## Key Features
+## 🏥 Project Overview
+A comprehensive Healthcare Management System built with the MERN stack (MongoDB, Express.js, React, Node.js) featuring:
 
-### User Management
-- **Registration & Authentication**: Secure user registration and login with JWT.
-- **Role-based Access Control**: Three user roles (Admin, Doctor, Patient).
-- **Profile Management**: Users can view and update their profiles.
-- **Admin Functions**: User upgrades, deletions, and management.
+- Role-based access control (Admin, Doctor, Patient)
+- Appointment scheduling system
+- Doctor availability management
+- Automated email notifications
+- Secure authentication with JWT
 
-### Doctor Functionality
-- **Profile Management**: Upload profile image by drag and drop.
-- **Availability Scheduling**: Set available time slots for appointments.
-- **Appointment Management**: View, confirm, or reject patient appointments.
-- **Patient Communication**: Automated email notifications for status changes.
+## ✨ Key Features
+### 👨‍⚕️ Doctor Features
+- Profile management with image upload
+- Availability scheduling calendar
+- Appointment confirmation/rejection
+- Patient communication tools
 
-### Patient Functionality
-- **Doctor Discovery**: View available doctors with specialties.
-- **Appointment Booking**: Book available time slots.
-- **Appointment Tracking**: View all their booked appointments.
+### 🏥 Patient Features
+- Doctor discovery and search
+- Online appointment booking
+- Appointment history tracking
+- Email notifications
 
-## 🔄 Role Assignment Flow
-1. **User signs up** → Becomes a **patient** by default.
-2. **Admin logs in** → Goes to **User Management**.
-3. **Admin selects a patient** → Clicks **"Upgrade to Doctor"**.
-4. **Admin fills doctor details** → Submits the form.
-5. **System sends email**: "Congratulations! You are now a doctor...".
-6. **User's role updates** → Next login accesses **Doctor Dashboard**.
+### 👑 Admin Features
+- User management dashboard
+- Patient-to-doctor upgrades
+- System monitoring
+- Content management
 
-## 📊 Dashboards Overview
+## 👥 User Roles & Workflows
+### 🔄 Role Assignment Flow
+1. User signs up → Defaults to Patient role
+2. Admin logs in → Accesses User Management
+3. Admin upgrades patient → Provides doctor details
+4. System sends confirmation email to new doctor
+5. Doctor completes profile → Sets availability
 
-### 👨‍⚕️ Doctor Dashboard
-- Set availability (Choose time slots).
-- Upload Profile Image.
-- View & Manage Appointments.
-- Receive Notifications.
+### 📧 Email Notifications
+| Trigger | Recipient | Content |
+|---------|----------|---------|
+| Role upgrade | New Doctor | "Welcome to Doctor Portal" |
+| Appointment request | Patient | "Appointment pending" |
+| Appointment confirmed | Patient | "Appointment confirmed" |
+| Appointment rejected | Patient | "Please choose another time" |
 
-### Patient-to-Doctor Transition Workflow
-To understand how the system works, follow these steps:
-1. **Sign up two users** (both will be **patients** by default).
-2. **Login as an Admin** (credentials provided below) and **upgrade one patient to a doctor**.
-3. **The upgraded user will receive an email** with a login URL to the **Doctor Dashboard**.
-4. **Login as the doctor**, upload a **profile image**, and **set availability**.
-5. **Logout and log in as the second user (patient)**.
-6. **Book an appointment** with the newly upgraded doctor.
-7. **Check your email** for confirmation of your appointment request.
-8. **Login as the doctor** and either confirm or reject the appointment.
-9. **The patient will receive an email notification** about the status update.
-
-## 📧 Key Email Notifications
-
-| Action | Recipient | Email Content |
-|--------|-----------|---------------|
-| New Doctor Upgrade | Upgraded User | "You are now a doctor! Log in to set profile." |
-| Appointment Request | Patient | "Your request is pending confirmation." |
-| Appointment Confirmed | Patient | "Your appointment with Dr. [Name] is confirmed!" |
-| Appointment Rejected | Patient | "Request declined. Please book another slot." |
-
-## Technology Stack
-
+## 🛠 Technology Stack
 ### Backend
-- **Node.js**
-- **Express.js**
-- **MongoDB (Mongoose ODM)**
-- **JWT Authentication**
-- **Bcrypt Password Hashing**
-- **Multer File Uploads**
-- **Nodemailer Email Service**
+- Node.js (v16+)
+- Express.js (REST API)
+- MongoDB (Atlas Cloud)
+- Mongoose (ODM)
+- JWT (Authentication)
+- Bcrypt (Password hashing)
+- Nodemailer (Email service)
 
 ### Frontend
-- **React**
-- **React Router**
-- **Context API**
-- **Axios**
-- **Tailwind CSS**
+- React (v18)
+- React Router (v6)
+- Context API (State management)
+- Tailwind CSS (Styling)
+- Axios (HTTP client)
+- React Icons (Icon library)
 
-## API Endpoints
+## 🛡 API Documentation
+### Authentication
+#### `POST /api/user/register`
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "secure123"
+}
+```
 
-### Auth Routes (`/api/user`)
-- `POST /register` - Register new user
-- `POST /login` - Authenticate user
+### Doctor Endpoints
+#### `GET /api/doctors/all-doctors`
+**Headers:**
+```
+Authorization: Bearer <token>
+```
 
-### User Routes (`/api/users`)
-- `GET /` - Get all users (admin)
-- `GET /me` - Get current profile
-- `POST /upgrade` - Upgrade to doctor (admin)
-- `DELETE /:userId` - Delete user (admin)
+#### `POST /api/doctors/set-availability`
+**Headers:**
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+**Body:**
+```json
+{
+  "slots": ["2023-10-15T09:00:00", "2023-10-15T10:00:00"]
+}
+```
 
-### Doctor Routes (`/api/doctors`)
-- `GET /profile` - Get doctor profile
-- `POST /profile` - Update profile
-- `POST /profile-image` - Upload image
-- `GET /all-doctors` - List all doctors
-- `POST /set-availability` - Set slots
-- `GET /appointments` - Get appointments
-- `PUT /appointments/:id` - Update status
+### Appointment Endpoints
+#### `POST /api/appointments/book`
+**Headers:**
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+**Body:**
+```json
+{
+  "doctorId": "64c8a1f2e8a7b612a3e4f5a6",
+  "date": "2023-10-15T09:00:00"
+}
+```
 
-### Appointment Routes (`/api/appointments`)
-- `POST /book` - Book appointment
-- `GET /my-appointments` - Get user appointments
-
-## Getting Started
-
+## 🚀 Installation Guide
 ### Prerequisites
-- **Node.js** (v14+)
-- **MongoDB** (local or Atlas)
-- **NPM/Yarn**
+- Node.js (v16+)
+- MongoDB Atlas account
+- SMTP email service credentials
 
-### Installation
-1. Clone repository: `git clone https://github.com/LEAKONO/doctors-appointment`
-2. Navigate to the project directory: `cd PLP-Capstone`
-3. Install dependencies: `npm install`
-4. Create `.env` file (copy from `.env.example` and configure variables)
-5. Start the backend server: `node server.js`
-6. Navigate to the frontend directory: `cd frontend`
-7. Install frontend dependencies: `npm install`
-8. Start the frontend: `npm start`
+### Backend Setup
+1. Clone repository:
+   ```bash
+   git clone https://github.com/LEAKONO/doctors-appointment.git
+   cd doctors-appointment/backend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Configure environment:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your credentials
+   ```
+4. Start server:
+   ```bash
+   npm start
+   ```
 
-## 🔐 Logout
-- The **Logout Button** is located at the **bottom of the sidebar** in all dashboards.
-- Click to securely logout and return to the **Login Page**.
+### Frontend Setup
+1. Navigate to frontend:
+   ```bash
+   cd ../frontend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Configure API base URL:
+   ```bash
+   cp .env.example .env
+   # Set REACT_APP_API_BASE_URL
+   ```
+4. Start development server:
+   ```bash
+   npm start
+   ```
 
-## Future Enhancements
-- **Patient Medical Records**
-- **Prescription Management**
-- **Video Consultation**
-- **Payment Gateway Integration**
-- **Enhanced Doctor Search & Filtering**
+## 🔒 Demo Accounts
+| Role  | Email | Password |
+|-------|--------------------------|-----------|
+| Admin | leakonoemmanuel@gmail.com | leakono |
+| Doctor | joel@gmail.com | saitore |
+| Patient | kailinliberty@gmail.com | nashami |
 
-## 🚀 Demo Accounts
-Available for testing:
+## 🛠️ Future Enhancements
+- Video consultation integration
+- Electronic medical records
+- Prescription management
+- Payment gateway
+- Multilingual support
 
-| Role | Email | Password |
-|------|---------------------|-----------|
-| Admin | `leakonoemmanuel@gmail.com` | `leakono` |
-| Doctor | `joel@gmail.com` | `saitore` |
-| Patient | `kailinliberty@gmail.com` | `nashami` |
+## 🤝 Contributing
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-🌐 Live Demo
-
-Check out the live version of the project here: Live Link
-
-
-
-## 👥 Contributions
-Contributions are welcome! Feel free to submit pull requests or open issues.
-
-## 📜 License
-This project is licensed under the **MIT License**.
+## 📝 License
+Distributed under the MIT License. See LICENSE for more information.
 
 ## ✍️ Author
-Developed by **Emmanuel Leakono**.
+**Emmanuel Leakono**
+
+- **GitHub:** [@LEAKONO](https://github.com/LEAKONO)
+- **Email:** leakonoemmanuel@gmail.com
 

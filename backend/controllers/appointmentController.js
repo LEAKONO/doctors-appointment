@@ -209,4 +209,4 @@ exports.cancelAppointment = async (req, res) => {
         error: process.env.NODE_ENV === 'development' ? err.message : undefined
       });
     }
-  };
+};

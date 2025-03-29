@@ -1,19 +1,20 @@
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('../config/cloudinary');
 
-// Create profiles subdirectory
-const uploadPath = path.join(__dirname, '../uploads/profiles');
-fs.mkdirSync(uploadPath, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `doctor-${uniqueSuffix}${ext}`);
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: (req, file) => {
+    return {
+      folder: 'doctor_profiles',
+      public_id: `doctor-${Date.now()}`,
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      transformation: [
+        { width: 500, height: 500, crop: 'limit' },
+        { quality: 'auto:good' }
+      ],
+      resource_type: 'auto'
+    };
   }
 });
 
@@ -27,9 +28,11 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, 
-  fileFilter
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 
+  }
 });
 
 module.exports = upload;

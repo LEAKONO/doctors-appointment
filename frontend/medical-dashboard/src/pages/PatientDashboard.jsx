@@ -5,6 +5,7 @@ import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { LoadingSpinner, SkeletonCard } from "../components/LoadingSpinner";
 import { toast } from "react-hot-toast";
+import { motion } from "framer-motion";
 
 const FullPageLoader = () => (
   <div className="flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -27,69 +28,56 @@ const PatientDashboard = () => {
   const { user, isInitializing } = useAuth();
   const [imagesLoaded, setImagesLoaded] = useState({});
   const [appointmentImagesLoaded, setAppointmentImagesLoaded] = useState({});
-  const [notification, setNotification] = useState({
-    show: false,
-    message: "",
-    type: "success"
-  });
   const [searchTerm, setSearchTerm] = useState("");
-
-  const showNotification = useCallback((message, type = "success") => {
-    setNotification({
-      show: true,
-      message,
-      type
-    });
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, show: false }));
-    }, 3000);
-  }, []);
 
   const fetchDoctors = useCallback(async () => {
     try {
-      const doctorsRes = await api.get("/doctors/all-doctors");
-      return doctorsRes.data.map(doctor => ({
+      const { data } = await api.get("/doctors/all-doctors");
+      return data.map(doctor => ({
         ...doctor,
         userId: doctor.userId || {},
-        name: doctor.name || "Unknown Doctor",
+        // Modified to check multiple possible name locations
+        name: doctor.name || doctor.userId?.name || "Unknown Doctor",
         specialty: doctor.specialty || "General Practitioner",
-        profileImage: doctor.profileImage 
-          ? doctor.profileImage.startsWith('http') 
-            ? doctor.profileImage 
-            : `${window.location.origin}${doctor.profileImage}`
-          : '/default-profile.jpg',
-        availableSlots: doctor.availableSlots?.map(slot => 
-          new Date(slot).toISOString()
-        ) || []
+        profileImage: doctor.profileImage || '/default-profile.jpg',
+        availableSlots: doctor.availableSlots || []
       }));
     } catch (err) {
       console.error("Failed to fetch doctors:", err);
-      showNotification("Failed to load doctors", "error");
+      toast.error("Failed to load doctors");
       return [];
     }
-  }, [showNotification]);
+  }, []);
 
   const fetchAppointments = useCallback(async (doctorsList) => {
     try {
       const response = await api.get("/appointments/my-appointments");
       
-      if (!response.data || !response.data.success || !Array.isArray(response.data.data)) {
-        throw new Error("Invalid appointments data structure");
+      let appointmentsData = response.data;
+      
+      if (response.data && !Array.isArray(response.data) && response.data.data) {
+        appointmentsData = response.data.data;
       }
-
-      return response.data.data.map(appointment => {
+      
+      if (!Array.isArray(appointmentsData)) {
+        throw new Error("Invalid appointments data format");
+      }
+  
+      return appointmentsData.map(appointment => {
         const doctor = doctorsList.find(d => 
-          d._id === appointment.doctorId?._id
+          d._id === appointment.doctorId?._id || 
+          d._id === appointment.doctorId // Handle case where doctorId might be just the ID string
         );
         
         return {
           ...appointment,
           date: new Date(appointment.date),
           doctorId: doctor ? {
-            ...appointment.doctorId,
+            ...doctor,
+            // Modified to properly handle doctor name
             userId: {
               _id: doctor?.userId?._id || doctor?.userId || "unknown",
-              name: doctor?.name || "Unknown Doctor",
+              name: doctor?.name || doctor?.userId?.name || "Unknown Doctor",
               specialty: doctor?.specialty || "General Practitioner"
             },
             profileImage: doctor?.profileImage || '/default-profile.jpg'
@@ -98,10 +86,10 @@ const PatientDashboard = () => {
       });
     } catch (err) {
       console.error("Failed to fetch appointments:", err);
-      showNotification("Failed to load appointments", "error");
+      toast.error("Failed to load appointments");
       return [];
     }
-  }, [showNotification]);
+  }, []);
 
   const fetchData = useCallback(async () => {
     if (!user?.id) return;
@@ -115,14 +103,13 @@ const PatientDashboard = () => {
       setAppointments(appointmentsList);
     } catch (err) {
       console.error("Fetch error:", err);
-      showNotification(
-        err.response?.data?.message || "Failed to load dashboard data",
-        "error"
+      toast.error(
+        err.response?.data?.message || "Failed to load dashboard data"
       );
     } finally {
       setLoading(false);
     }
-  }, [user?.id, showNotification, fetchDoctors, fetchAppointments]);
+  }, [user?.id, fetchDoctors, fetchAppointments]);
 
   useEffect(() => {
     if (!isInitializing) {
@@ -135,7 +122,7 @@ const PatientDashboard = () => {
     const doctor = doctors.find(d => d._id === doctorId);
     
     if (!doctor) {
-      showNotification("Doctor information is not available", "error");
+      toast.error("Doctor information is not available");
       return;
     }
 
@@ -154,7 +141,7 @@ const PatientDashboard = () => {
           _id: doctorId,
           userId: {
             _id: doctor.userId?._id || doctor.userId || "unknown",
-            name: doctor.name || "Unknown Doctor",
+            name: doctor.name || doctor.userId?.name || "Unknown Doctor",
             specialty: doctor.specialty || "General Practitioner"
           },
           profileImage: doctor.profileImage || '/default-profile.jpg'
@@ -172,7 +159,7 @@ const PatientDashboard = () => {
         return d;
       }));
 
-      showNotification(`Appointment booked successfully!`);
+      toast.success(`Appointment booked successfully!`);
 
       setTimeout(() => {
         const element = document.getElementById('appointments-section');
@@ -203,7 +190,7 @@ const PatientDashboard = () => {
               ...bookedAppointment.doctorId,
               userId: {
                 _id: doctor.userId?._id || doctor.userId || "unknown",
-                name: doctor.name || "Unknown Doctor",
+                name: doctor.name || doctor.userId?.name || "Unknown Doctor",
                 specialty: doctor.specialty || "General Practitioner"
               },
               profileImage: doctor.profileImage || '/default-profile.jpg'
@@ -215,7 +202,6 @@ const PatientDashboard = () => {
     } catch (err) {
       console.error("Booking error:", err);
       
-      // Rollback optimistic update
       setAppointments(prev => prev.filter(app => app._id !== tempAppointmentId));
       setDoctors(prev => prev.map(d => {
         if (d._id === doctorId) {
@@ -227,9 +213,8 @@ const PatientDashboard = () => {
         return d;
       }));
 
-      showNotification(
-        err.response?.data?.msg || err.message || "Failed to book appointment",
-        "error"
+      toast.error(
+        err.response?.data?.msg || err.message || "Failed to book appointment"
       );
     } finally {
       setBookingLoading(null);
@@ -240,30 +225,26 @@ const PatientDashboard = () => {
     try {
       setDeletingAppointment(appointmentId);
       
-      // Optimistic update - remove the appointment completely
       setAppointments(prev => prev.filter(app => app._id !== appointmentId));
 
-      showNotification('Appointment deleted successfully');
+      toast.success('Appointment deleted successfully');
 
-      // Make API call to delete
       await api.delete(`/appointments/cancel/${appointmentId}`);
 
-      // No need to refresh data since we did optimistic update
       
     } catch (err) {
       console.error("Deletion error:", err);
       
-      // Rollback optimistic update by refreshing data
       await fetchData();
 
-      showNotification(
-        err.response?.data?.msg || err.message || "Failed to delete appointment",
-        "error"
+      toast.error(
+        err.response?.data?.msg || err.message || "Failed to delete appointment"
       );
     } finally {
       setDeletingAppointment(null);
     }
   };
+
   const handleImageLoad = (doctorId) => {
     setImagesLoaded(prev => ({...prev, [doctorId]: true}));
   };
@@ -318,20 +299,14 @@ const PatientDashboard = () => {
     <div className="flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       <Sidebar role="patient" />
       <main className="flex-1 p-8 relative fade-in">
-        {notification.show && (
-          <div className={`fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 transform transition-all duration-300 ${
-            notification.type === 'success' 
-              ? 'bg-green-100 text-green-800 border-l-4 border-green-500' 
-              : 'bg-red-100 text-red-800 border-l-4 border-red-500'
-          }`}>
-            <div className="flex items-center">
-              <span className="mr-2">{notification.message}</span>
-            </div>
-          </div>
-        )}
-
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-1">Welcome back, {user?.name || 'Patient'}</h1>
+          <motion.h1 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-3xl font-bold text-gray-800 mb-1"
+          >
+            Welcome back, {user?.name || 'Patient'}
+          </motion.h1>
           <p className="text-gray-600">Here's what's happening with your appointments</p>
         </div>
 
@@ -362,7 +337,12 @@ const PatientDashboard = () => {
           {filteredDoctors.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredDoctors.map((doctor) => (
-                <div key={doctor._id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+                <motion.div 
+                  key={doctor._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
+                >
                   <div className="p-6">
                     <div className="flex items-center mb-4">
                       <div className="relative w-16 h-16 mr-4">
@@ -437,7 +417,7 @@ const PatientDashboard = () => {
                       </ul>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           ) : (
@@ -496,9 +476,11 @@ const PatientDashboard = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {appointments.length > 0 ? (
                     appointments.map((appointment) => (
-                      <tr 
+                      <motion.tr 
                         key={appointment._id} 
                         id={`appointment-${appointment._id}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
                         className="hover:bg-gray-50 transition-colors"
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -514,7 +496,7 @@ const PatientDashboard = () => {
                                       !appointmentImagesLoaded[appointment._id] ? 'opacity-0' : 'opacity-100'
                                     }`}
                                     src={appointment.doctorId?.profileImage || '/default-profile.jpg'} 
-                                    alt={appointment.doctorId?.userId?.name}
+                                    alt={appointment.doctorId?.name || appointment.doctorId?.userId?.name}
                                     onLoad={() => handleAppointmentImageLoad(appointment._id)}
                                     onError={(e) => {
                                       e.target.src = "/default-profile.jpg";
@@ -533,13 +515,13 @@ const PatientDashboard = () => {
                                 {!appointment.doctorId && (
                                   <FiAlertTriangle className="text-yellow-500 mr-1" />
                                 )}
-                                {appointment.doctorId?.userId?.name || 
-                                 appointment.doctorId?.name || 
+                                {appointment.doctorId?.name || 
+                                 appointment.doctorId?.userId?.name || 
                                  "Doctor Deleted"}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {appointment.doctorId?.userId?.specialty || 
-                                 appointment.doctorId?.specialty || 
+                                {appointment.doctorId?.specialty || 
+                                 appointment.doctorId?.userId?.specialty || 
                                  "Specialty not available"}
                               </div>
                             </div>
@@ -587,7 +569,7 @@ const PatientDashboard = () => {
                             </button>
                           )}
                         </td>
-                      </tr>
+                      </motion.tr>
                     ))
                   ) : (
                     <tr>

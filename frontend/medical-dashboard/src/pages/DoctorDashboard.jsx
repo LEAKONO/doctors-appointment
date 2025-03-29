@@ -14,7 +14,8 @@ import {
   FiLoader, 
   FiMail, 
   FiPhone,
-  FiAlertTriangle
+  FiAlertTriangle,
+  FiAward
 } from "react-icons/fi";
 import { motion } from "framer-motion";
 
@@ -39,7 +40,6 @@ const DoctorDashboard = () => {
       }));
       setAppointments(processedData);
       
-      // Calculate stats
       const now = new Date();
       const stats = {
         total: data.length,
@@ -58,16 +58,14 @@ const DoctorDashboard = () => {
     try {
       const { data } = await api.get("/doctors/profile");
       if (data) {
-        // Clean up any existing double URLs
-        if (data.profileImage?.includes("http://localhost:5000/http://localhost:5000")) {
-          data.profileImage = data.profileImage.replace(
-            "http://localhost:5000/http://localhost:5000",
-            "http://localhost:5000"
-          );
-        } else if (data.profileImage && !data.profileImage.startsWith("http")) {
-          data.profileImage = `http://localhost:5000${data.profileImage}`;
-        }
-        updateUserProfile(data);
+        updateUserProfile({
+          ...user,
+          doctorProfile: {
+            ...user.doctorProfile,
+            ...data,
+            profileImage: data.profileImage || null
+          }
+        });
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -89,10 +87,9 @@ const DoctorDashboard = () => {
   useEffect(() => {
     fetchData();
 
-    // Set up polling for real-time updates
     const interval = setInterval(() => {
       fetchAppointments();
-    }, 30000); // Refresh every 30 seconds
+    }, 30000);
 
     return () => clearInterval(interval);
   }, []);
@@ -106,15 +103,11 @@ const DoctorDashboard = () => {
           prev.map(appointment => 
             appointment._id === appointmentId ? { 
               ...appointment, 
-              status: data.appointment.status,
-              doctorId: appointment.doctorId._id === data.appointment.doctorId._id ? {
-                ...appointment.doctorId,
-                ...data.appointment.doctorId
-              } : appointment.doctorId
+              status: data.appointment.status
             } : appointment
           )
         );
-        fetchData(); // Refresh stats
+        fetchData();
         toast.success(`Appointment ${status}`, {
           icon: status === 'confirmed' ? '✅' : status === 'rejected' ? '❌' : '🕒',
           style: {
@@ -133,11 +126,21 @@ const DoctorDashboard = () => {
     }
   };
 
-  const handleProfileUpdate = async (newData) => {
+  const handleProfileUpdate = async (file) => {
     try {
-      await api.post("/doctors/profile", newData);
-      await fetchProfile();
-      toast.success("Profile updated successfully!");
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const { data } = await api.post('/doctors/upload-profile', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      if (data.success) {
+        await fetchProfile();
+        toast.success("Profile image updated successfully!");
+      }
     } catch (error) {
       console.error("Profile update failed:", error);
       toast.error(error.response?.data?.message || "Failed to update profile");
@@ -176,7 +179,6 @@ const DoctorDashboard = () => {
       <Sidebar role="doctor" />
       
       <main className="flex-1 p-4 md:p-8">
-        {/* Header Section */}
         <div className="mb-8">
           <motion.h1 
             initial={{ opacity: 0, y: -10 }}
@@ -217,9 +219,7 @@ const DoctorDashboard = () => {
           ))}
         </div>
 
-        {/* Profile and Availability Cards */}
         <div className="grid md:grid-cols-2 gap-8 mb-8">
-          {/* Profile Card */}
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -237,6 +237,15 @@ const DoctorDashboard = () => {
               <div className="relative">
                 {loading ? (
                   <div className="w-24 h-24 rounded-full bg-gray-200 animate-pulse"></div>
+                ) : user?.doctorProfile?.profileImage ? (
+                  <img
+                    src={user.doctorProfile.profileImage}
+                    alt="Profile"
+                    className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
+                    onError={(e) => {
+                      e.target.src = '/default-profile.jpg';
+                    }}
+                  />
                 ) : (
                   <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-4xl font-bold text-blue-600 border-4 border-white shadow-md">
                     {user?.doctorProfile?.name?.charAt(0) || user?.name?.charAt(0) || "D"}
@@ -245,12 +254,20 @@ const DoctorDashboard = () => {
               </div>
               
               <div className="flex-1 w-full">
-                <ProfileUpload onSuccess={handleProfileUpdate} />
+                <ProfileUpload onUpload={handleProfileUpdate} />
                 <div className="mt-4 space-y-2">
                   {user?.doctorProfile?.specialty && (
-                    <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium inline-block">
-                      {user.doctorProfile.specialty}
+                    <div className="flex items-center">
+                      <FiAward className="text-blue-500 mr-2" />
+                      <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                        {user.doctorProfile.specialty}
+                      </span>
                     </div>
+                  )}
+                  {user?.doctorProfile?.qualifications && (
+                    <p className="text-gray-600 text-sm">
+                      {user.doctorProfile.qualifications}
+                    </p>
                   )}
                   {user?.doctorProfile?.phone && (
                     <div className="flex items-center text-gray-600">
@@ -262,7 +279,6 @@ const DoctorDashboard = () => {
             </div>
           </motion.div>
 
-          {/* Availability Card */}
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -277,7 +293,6 @@ const DoctorDashboard = () => {
           </motion.div>
         </div>
 
-        {/* Appointments Section */}
         <motion.section 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

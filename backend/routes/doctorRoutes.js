@@ -4,12 +4,13 @@ const doctorController = require('../controllers/doctorController');
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload'); 
 
-router.patch(
-  '/profile-image',
+router.post(
+  '/upload-profile',
   authMiddleware,
-  upload.single('profileImage'),
+  upload.single('image'),  
   doctorController.uploadProfileImage
 );
+
 router.post('/profile', authMiddleware, doctorController.updateDoctorProfile);
 router.get('/profile', authMiddleware, doctorController.getDoctorProfile);
 router.get('/all-doctors', doctorController.getAllDoctors);

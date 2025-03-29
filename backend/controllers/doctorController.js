@@ -3,8 +3,7 @@ const Doctor = require('../models/Doctor');
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const sendEmail = require('../config/email');
-const path = require('path');
-const fs = require('fs');
+const cloudinary = require('../config/cloudinary');
 
 exports.setAvailability = async (req, res) => {
   try {
@@ -23,7 +22,7 @@ exports.setAvailability = async (req, res) => {
       .map(date => date.toISOString());
 
     const doctor = await Doctor.findOneAndUpdate(
-      { userId: req.user.userId, isDeleted: { $ne: true } }, // Add isDeleted check
+      { userId: req.user.userId, isDeleted: { $ne: true } },
       { $push: { availableSlots: { $each: validSlots } } },
       { new: true, runValidators: true }
     );
@@ -41,7 +40,7 @@ exports.updateDoctorProfile = async (req, res) => {
     const { name, specialty, qualifications, ...otherData } = req.body;
     
     const updatedDoctor = await Doctor.findOneAndUpdate(
-      { userId: req.user.userId, isDeleted: { $ne: true } }, // Add isDeleted check
+      { userId: req.user.userId, isDeleted: { $ne: true } },
       { specialty, qualifications, ...otherData },
       { new: true, runValidators: true }
     );
@@ -100,7 +99,7 @@ exports.getDoctorProfile = async (req, res) => {
       ...doctor._doc,
       name: doctor.userId.name, 
       email: doctor.userId.email,
-      profileImage: doctor.profileImage ? `http://localhost:5000${doctor.profileImage}` : null
+      profileImage: doctor.profileImage || null // Cloudinary URL is already complete
     });
   } catch (error) {
     console.error("Error fetching doctor profile:", error);
@@ -118,7 +117,6 @@ exports.getAllDoctors = async (req, res) => {
       })
       .lean();
 
-    // Filter out doctors with deleted users
     const validDoctors = doctors.filter(doctor => doctor.userId !== null);
 
     const formattedDoctors = validDoctors.map(doctor => ({
@@ -127,11 +125,7 @@ exports.getAllDoctors = async (req, res) => {
       email: doctor.userId.email,
       specialty: doctor.specialty,
       qualifications: doctor.qualifications,
-      profileImage: doctor.profileImage 
-        ? doctor.profileImage.startsWith('http') 
-          ? doctor.profileImage 
-          : `http://localhost:5000${doctor.profileImage}`
-        : null,
+      profileImage: doctor.profileImage || null, // Cloudinary URL is already complete
       availableSlots: doctor.availableSlots || []
     }));
 
@@ -157,7 +151,7 @@ exports.updateAppointmentStatus = async (req, res) => {
     const appointment = await Appointment.findById(id)
       .populate({
         path: 'patientId',
-        match: { isDeleted: { $ne: true } }, // Ensure patient exists and not deleted
+        match: { isDeleted: { $ne: true } }, 
         select: 'name email'
       })
       .populate({
@@ -165,7 +159,7 @@ exports.updateAppointmentStatus = async (req, res) => {
         select: 'userId specialty',
         populate: {
           path: 'userId',
-          match: { isDeleted: { $ne: true } }, // Ensure doctor user exists and not deleted
+          match: { isDeleted: { $ne: true } }, 
           select: 'name email'
         }
       });
@@ -176,7 +170,7 @@ exports.updateAppointmentStatus = async (req, res) => {
 
     const requestingDoctor = await Doctor.findOne({ 
       userId: req.user.userId,
-      isDeleted: { $ne: true } // Ensure requesting doctor exists and not deleted
+      isDeleted: { $ne: true } 
     });
     if (!requestingDoctor || !appointment.doctorId._id.equals(requestingDoctor._id)) {
       return res.status(403).json({ success: false, message: 'Unauthorized to update this appointment' });
@@ -210,27 +204,49 @@ exports.updateAppointmentStatus = async (req, res) => {
 
 exports.uploadProfileImage = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-
-    const imageUrl = `/uploads/profiles/${req.file.filename}`;
-    const filePath = path.join(__dirname, '../uploads/profiles', req.file.filename);
-    
-    if (!fs.existsSync(filePath)) {
-      console.error('File verification failed:', filePath);
-      return res.status(500).json({ message: "File was not saved correctly" });
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false,
+        message: "No file uploaded" 
+      });
     }
 
+    // Cloudinary provides the secure URL in req.file.path
     const doctor = await Doctor.findOneAndUpdate(
-      { userId: req.user.userId, isDeleted: { $ne: true } }, // Add isDeleted check
-      { profileImage: imageUrl },
+      { userId: req.user.userId, isDeleted: { $ne: true } },
+      { profileImage: req.file.path },
       { new: true }
     );
 
-    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+    if (!doctor) {
+      // Clean up the uploaded image if doctor not found
+      if (req.file?.public_id) {
+        await cloudinary.uploader.destroy(req.file.public_id);
+      }
+      return res.status(404).json({ 
+        success: false,
+        message: "Doctor not found" 
+      });
+    }
 
-    res.json({ profileImage: imageUrl, message: "Profile image updated successfully" });
+    res.json({ 
+      success: true,
+      profileImage: req.file.path,
+      message: "Profile image updated successfully" 
+    });
+
   } catch (error) {
     console.error("Upload failed:", error);
-    res.status(500).json({ message: "Error uploading image", error: error.message });
+    
+    // Clean up the uploaded file if error occurred
+    if (req.file?.public_id) {
+      await cloudinary.uploader.destroy(req.file.public_id);
+    }
+
+    res.status(500).json({ 
+      success: false,
+      message: "Error uploading image",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };

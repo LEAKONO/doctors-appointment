@@ -5,6 +5,7 @@ const Appointment = require("../models/Appointment");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const sendEmail = require("../config/email");
+const cloudinary = require("../config/cloudinary");
 
 exports.register = async (req, res) => {
   const { name, email, password, role } = req.body; 
@@ -114,7 +115,7 @@ exports.upgradeToDoctor = async (req, res) => {
     }
 
     const { userId, specialty, qualifications } = req.body;
-    let profileImage = req.file?.path || '';
+    const profileImage = req.file?.path || ''; // Will be Cloudinary URL if uploaded
 
     if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ success: false, msg: 'Valid user ID is required' });
@@ -128,7 +129,12 @@ exports.upgradeToDoctor = async (req, res) => {
     if (!user) return res.status(404).json({ success: false, msg: 'User not found' });
     if (user.role === 'doctor') return res.status(400).json({ success: false, msg: 'User is already a doctor' });
 
-    const doctor = new Doctor({ userId: user._id, specialty, qualifications, profileImage });
+    const doctor = new Doctor({ 
+      userId: user._id, 
+      specialty, 
+      qualifications, 
+      profileImage 
+    });
     await doctor.save();
 
     user.role = 'doctor';
@@ -148,7 +154,7 @@ exports.upgradeToDoctor = async (req, res) => {
       success: true,
       msg: 'Upgrade successful and email sent',
       user: { _id: user._id, name: user.name, email: user.email, role: user.role },
-      doctor: { _id: doctor._id, specialty: doctor.specialty, qualifications: doctor.qualifications, profileImage: doctor.profileImage }
+      doctor: { _id: doctor._id, specialty: doctor.specialty, qualifications: doctor.qualifications, profileImage }
     });
   } catch (err) {
     console.error("Upgrade error:", err);
@@ -194,8 +200,12 @@ exports.deleteUser = async (req, res) => {
       return res.status(403).json({ success: false, msg: "Unauthorized - Admin accounts cannot be deleted" });
     }
 
-    // Delete the user and all related data
     if (userToDelete.role === "doctor") {
+      const doctor = await Doctor.findOne({ userId: userToDelete._id }).session(session);
+      if (doctor?.profileImage) {
+        const publicId = doctor.profileImage.split('/').pop().split('.')[0];
+        await cloudinary.uploader.destroy(`doctor_profiles/${publicId}`);
+      }
       await Doctor.deleteOne({ userId: userToDelete._id }).session(session);
     }
     
@@ -207,7 +217,6 @@ exports.deleteUser = async (req, res) => {
       ]
     }).session(session);
 
-    // Finally delete the user
     await User.deleteOne({ _id: userToDelete._id }).session(session);
 
     await session.commitTransaction();

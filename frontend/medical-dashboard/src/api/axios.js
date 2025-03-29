@@ -2,7 +2,7 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 const api = axios.create({
-  baseURL: 'https://doctors-appointment-5egi.onrender.com/api', 
+  baseURL: 'https://doctors-appointment-5egi.onrender.com/api',
 });
 
 api.interceptors.request.use((config) => {
@@ -11,10 +11,8 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   
-  // Handle FormData content type
   if (config.data instanceof FormData) {
     config.headers['Content-Type'] = 'multipart/form-data';
-    delete config.headers['Content-Type'];
   }
   
   return config;
@@ -27,7 +25,11 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       window.location = '/';
     }
-    toast.error(error.response?.data?.message || 'Something went wrong');
+    
+    const errorMessage = error.response?.data?.message || 
+                       error.response?.data?.error || 
+                       'Something went wrong';
+    toast.error(errorMessage);
     return Promise.reject(error);
   }
 );

@@ -193,7 +193,6 @@ const PatientDashboard = () => {
         date: slot
       });
 
-      // Update with real data
       if (response.data?.success) {
         const bookedAppointment = response.data.data;
         setAppointments(prev => prev.map(app => 

@@ -4,8 +4,8 @@ const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const sendEmail = require('../config/email');
 const cloudinary = require('cloudinary').v2;
+const fs = require('fs');
 
-// Configure Cloudinary (should be in config file but included here for completeness)
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -366,12 +366,16 @@ exports.uploadProfileImage = async (req, res) => {
         { quality: 'auto:best' },
         { fetch_format: 'auto' }
       ]
-    }).catch(err => {
-      throw new Error(`Cloudinary upload failed: ${err.message}`);
     });
 
     doctor.profileImage = result.secure_url;
     await doctor.save();
+
+    if (req.file.path && fs.existsSync(req.file.path)) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('Error deleting temp file:', err);
+      });
+    }
 
     res.json({
       success: true,
@@ -380,26 +384,18 @@ exports.uploadProfileImage = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Profile upload error:", {
-      message: error.message,
-      stack: error.stack,
-      file: req.file ? {
-        originalname: req.file.originalname,
-        mimetype: req.file.mimetype,
-        size: req.file.size
-      } : null
-    });
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to upload profile image",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  } finally {
+    console.error("Upload error:", error);
+    
     if (req.file?.path && fs.existsSync(req.file.path)) {
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('Error deleting temp file:', err);
       });
     }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to upload image",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };

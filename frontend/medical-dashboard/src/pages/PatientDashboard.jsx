@@ -33,10 +33,14 @@ const PatientDashboard = () => {
   const fetchDoctors = useCallback(async () => {
     try {
       const { data } = await api.get("/doctors/all-doctors");
-      return data.map(doctor => ({
+      
+      const doctorsData = Array.isArray(data?.doctors) ? data.doctors : 
+                         Array.isArray(data?.data) ? data.data : 
+                         Array.isArray(data) ? data : [];
+      
+      return doctorsData.map(doctor => ({
         ...doctor,
         userId: doctor.userId || {},
-        // Modified to check multiple possible name locations
         name: doctor.name || doctor.userId?.name || "Unknown Doctor",
         specialty: doctor.specialty || "General Practitioner",
         profileImage: doctor.profileImage || '/default-profile.jpg',
@@ -45,7 +49,7 @@ const PatientDashboard = () => {
     } catch (err) {
       console.error("Failed to fetch doctors:", err);
       toast.error("Failed to load doctors");
-      return [];
+      return []; 
     }
   }, []);
 

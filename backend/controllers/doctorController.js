@@ -180,29 +180,35 @@ exports.getAllDoctors = async (req, res) => {
       })
       .lean();
 
-    const validDoctors = doctors.filter(doctor => doctor.userId !== null);
+    // Safely format doctors data with null checks
+    const formattedDoctors = doctors
+      .filter(doctor => doctor.userId !== null) // Filter out null users
+      .map(doctor => ({
+        _id: doctor._id,
+        userId: doctor.userId?._id || null,
+        name: doctor.userId?.name || 'Unknown Doctor',
+        email: doctor.userId?.email || '',
+        phone: doctor.userId?.phone || '',
+        specialty: doctor.specialty || 'General Practitioner',
+        qualifications: doctor.qualifications || '',
+        profileImage: doctor.profileImage || '/default-profile.jpg',
+        availableSlots: Array.isArray(doctor.availableSlots) ? doctor.availableSlots : [],
+        consultationFee: doctor.consultationFee || 0,
+        rating: doctor.rating || 0
+      }));
 
-    const formattedDoctors = validDoctors.map(doctor => ({
-      _id: doctor._id,
-      userId: doctor.userId._id,
-      name: doctor.userId.name,
-      email: doctor.userId.email,
-      phone: doctor.userId.phone,
-      specialty: doctor.specialty,
-      qualifications: doctor.qualifications,
-      profileImage: doctor.profileImage,
-      availableSlots: doctor.availableSlots,
-      consultationFee: doctor.consultationFee,
-      rating: doctor.rating
-    }));
+    res.json({ 
+      success: true,
+      doctors: formattedDoctors 
+    });
 
-    res.json({ success: true, doctors: formattedDoctors });
   } catch (err) {
     console.error("Error fetching doctors:", err);
     res.status(500).json({ 
-      success: false, 
-      message: 'Server error', 
-      error: err.message 
+      success: false,
+      doctors: [], 
+      message: 'Failed to fetch doctors',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
 };

@@ -5,7 +5,6 @@ const api = axios.create({
   baseURL: 'https://doctors-appointment-5egi.onrender.com/api', 
 });
 
-// Request interceptor
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {

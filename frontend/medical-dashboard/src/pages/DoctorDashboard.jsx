@@ -33,27 +33,50 @@ const DoctorDashboard = () => {
 
   const fetchAppointments = async () => {
     try {
-      const { data } = await api.get("/doctors/appointments");
-      const processedData = data.map(appointment => ({
-        ...appointment,
-        patientId: appointment.patientId || { name: "Deleted Patient" }
+      const response = await api.get("/doctors/appointments");
+      
+      const appointmentsData = Array.isArray(response.data?.appointments) 
+        ? response.data.appointments 
+        : Array.isArray(response.data?.data) 
+          ? response.data.data 
+          : [];
+  
+      const processedData = appointmentsData.map(appointment => ({
+        _id: appointment._id,
+        date: appointment.date,
+        status: appointment.status || 'pending',
+        patientId: appointment.patientId || { 
+          _id: null, 
+          name: "Deleted Patient",
+          email: "",
+          phone: ""
+        },
+        createdAt: appointment.createdAt,
+        updatedAt: appointment.updatedAt
       }));
+  
       setAppointments(processedData);
       
       const now = new Date();
       const stats = {
-        total: data.length,
-        confirmed: data.filter(a => a.status === 'confirmed' && new Date(a.date) >= now).length,
-        pending: data.filter(a => a.status === 'pending' && new Date(a.date) >= now).length,
-        rejected: data.filter(a => a.status === 'rejected' || new Date(a.date) < now).length
+        total: processedData.length,
+        confirmed: processedData.filter(a => a.status === 'confirmed' && new Date(a.date) >= now).length,
+        pending: processedData.filter(a => a.status === 'pending' && new Date(a.date) >= now).length,
+        rejected: processedData.filter(a => a.status === 'rejected' || new Date(a.date) < now).length
       };
       setStats(stats);
     } catch (error) {
       console.error("Error fetching appointments:", error);
       toast.error("Failed to load appointments");
+      setAppointments([]);
+      setStats({
+        total: 0,
+        confirmed: 0,
+        pending: 0,
+        rejected: 0
+      });
     }
   };
-
   const fetchProfile = async () => {
     try {
       const { data } = await api.get("/doctors/profile");

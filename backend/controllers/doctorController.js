@@ -103,24 +103,52 @@ exports.getAppointments = async (req, res) => {
     });
 
     if (!doctor) {
-      return res.status(404).json({ success: false, message: 'Doctor profile not found' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Doctor profile not found',
+        appointments: [] 
+      });
     }
 
     const appointments = await Appointment.find({ 
       doctorId: doctor._id,
       status: { $ne: 'cancelled' } 
-    }).populate({
+    })
+    .populate({
       path: 'patientId',
       match: { isDeleted: { $ne: true } },
       select: 'name email phone'
-    }).sort({ date: 1 });
+    })
+    .sort({ date: 1 })
+    .lean();
 
-    const validAppointments = appointments.filter(app => app.patientId !== null);
-    
-    res.json({ success: true, appointments: validAppointments });
+    const validAppointments = (appointments || []).filter(app => app.patientId !== null)
+      .map(appointment => ({
+        _id: appointment._id,
+        date: appointment.date,
+        status: appointment.status || 'pending',
+        patientId: appointment.patientId || {
+          _id: null,
+          name: 'Deleted Patient',
+          email: '',
+          phone: ''
+        },
+        createdAt: appointment.createdAt,
+        updatedAt: appointment.updatedAt
+      }));
+
+    res.json({ 
+      success: true, 
+      appointments: validAppointments 
+    });
   } catch (err) {
     console.error("Error in getAppointments:", err);
-    res.status(500).json({ success: false, message: 'Server error', error: err.message });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error',
+      appointments: [], 
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 
@@ -259,7 +287,6 @@ exports.updateAppointmentStatus = async (req, res) => {
     appointment.status = status;
     await appointment.save();
 
-    // Send email notification for important status changes
     if (['confirmed', 'cancelled'].includes(status)) {
       const formattedDate = new Date(appointment.date).toLocaleString();
       const doctorName = appointment.doctorId.userId.name;

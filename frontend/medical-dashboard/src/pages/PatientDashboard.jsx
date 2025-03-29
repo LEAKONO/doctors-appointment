@@ -142,7 +142,6 @@ const PatientDashboard = () => {
     try {
       setBookingLoading(`${doctorId}-${slot}`);
       
-      // Optimistic update
       const newAppointment = {
         _id: tempAppointmentId,
         date: new Date(slot),
@@ -175,7 +174,6 @@ const PatientDashboard = () => {
 
       showNotification(`Appointment booked successfully!`);
 
-      // Scroll to appointments
       setTimeout(() => {
         const element = document.getElementById('appointments-section');
         if (element) {
@@ -190,7 +188,6 @@ const PatientDashboard = () => {
         }
       }, 100);
 
-      // Make API call
       const response = await api.post("/appointments/book", { 
         doctorId, 
         date: slot

@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { useAuth } from './context/AuthContext'; // ✅ Correct usage
+import { useAuth } from './context/AuthContext';
+import { FullPageLoader } from './components/LoadingSpinner'; 
 
 import LandingPage from './pages/LandingPage';
 import PatientDashboard from './pages/PatientDashboard';
@@ -11,7 +12,7 @@ function App() {
   const { user, loading } = useAuth(); 
 
   if (loading) {
-    return <div>Loading...</div>; 
+    return <FullPageLoader />; 
   }
 
   return (

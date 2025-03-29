@@ -32,12 +32,10 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      
       const { data: authData } = await api.post("/users/login", { email, password });
       localStorage.setItem("token", authData.token);
 
       const { data: userData } = await api.get("/users/me");
-      
       const completeUser = {
         id: userData._id,
         name: userData.name,
@@ -57,12 +55,9 @@ export const AuthProvider = ({ children }) => {
 
       setUser(completeUser);
       updateLocalStorage(completeUser);
-
       navigate(`/${completeUser.role}`);
       return completeUser;
-
     } catch (error) {
-      console.error("Login error:", error);
       setError(error.response?.data?.message || "Login failed");
       localStorage.removeItem("token");
       localStorage.removeItem("user");
@@ -77,14 +72,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      
-      const { data } = await api.post("/users/register", {
-        name: userData.name,
-        email: userData.email,
-        password: userData.password,
-        role: userData.role || 'patient'
-      });
-
+      const { data } = await api.post("/users/register", userData);
       localStorage.setItem("token", data.token);
       
       const newUser = {
@@ -98,10 +86,8 @@ export const AuthProvider = ({ children }) => {
       setUser(newUser);
       updateLocalStorage(newUser);
       navigate(`/${newUser.role}`);
-
       return data;
     } catch (error) {
-      console.error("Registration error:", error);
       setError(error.response?.data?.message || "Registration failed");
       throw error;
     } finally {
@@ -116,7 +102,7 @@ export const AuthProvider = ({ children }) => {
     navigate("/login");
   }, [navigate]);
 
-  const updateUserProfile = useCallback((profileData) => {
+  const updateUserProfile = useCallback((updates) => {
     setUser(prev => {
       if (!prev) return prev;
       
@@ -124,7 +110,10 @@ export const AuthProvider = ({ children }) => {
         ...prev,
         doctorProfile: {
           ...prev.doctorProfile,
-          ...profileData
+          ...updates,
+          profileImage: updates.profileImage 
+            ? `${updates.profileImage.split('?')[0]}?t=${Date.now()}` 
+            : prev.doctorProfile?.profileImage
         }
       };
       
@@ -135,9 +124,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = useCallback(async () => {
     setIsInitializing(true);
-    setError(null);
     const token = localStorage.getItem("token");
-    
     if (!token) {
       setIsInitializing(false);
       return;
@@ -157,26 +144,19 @@ export const AuthProvider = ({ children }) => {
         try {
           const { data: profileData } = await api.get("/doctors/profile");
           userData.doctorProfile = profileData;
-        } catch (profileError) {
-          console.error("Couldn't fetch doctor profile", profileError);
+        } catch (error) {
+          console.error("Couldn't fetch doctor profile", error);
         }
       }
 
       setUser(userData);
       updateLocalStorage(userData);
-      
-      // Redirect if not on correct role-based route
-      const currentPath = window.location.pathname;
-      if (!currentPath.startsWith(`/${userData.role}`)) {
-        navigate(`/${userData.role}`);
-      }
     } catch (error) {
-      console.error("Auth check failed:", error);
       logout();
     } finally {
       setIsInitializing(false);
     }
-  }, [logout, navigate, updateLocalStorage]);
+  }, [logout, updateLocalStorage]);
 
   useEffect(() => {
     checkAuth();
@@ -185,14 +165,13 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider 
       value={{ 
-        user, 
-        setUser,
-        login, 
-        register, 
-        logout, 
+        user,
+        login,
+        register,
+        logout,
         loading,
-        isInitializing,
         error,
+        isInitializing,
         updateUserProfile
       }}
     >
@@ -201,10 +180,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);

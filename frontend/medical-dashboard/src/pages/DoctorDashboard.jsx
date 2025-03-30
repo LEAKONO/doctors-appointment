@@ -31,6 +31,7 @@ const DoctorDashboard = () => {
     rejected: 0
   });
 
+  // Enhanced fetch function with error boundaries
   const fetchAppointments = async () => {
     try {
       const response = await api.get("/doctors/appointments");
@@ -58,13 +59,12 @@ const DoctorDashboard = () => {
       setAppointments(processedData);
       
       const now = new Date();
-      const stats = {
+      setStats({
         total: processedData.length,
         confirmed: processedData.filter(a => a.status === 'confirmed' && new Date(a.date) >= now).length,
         pending: processedData.filter(a => a.status === 'pending' && new Date(a.date) >= now).length,
         rejected: processedData.filter(a => a.status === 'rejected' || new Date(a.date) < now).length
-      };
-      setStats(stats);
+      });
     } catch (error) {
       console.error("Error fetching appointments:", error);
       toast.error("Failed to load appointments");
@@ -77,17 +77,17 @@ const DoctorDashboard = () => {
       });
     }
   };
+
+  // Optimized profile fetching with image persistence
   const fetchProfile = async () => {
     try {
       const { data } = await api.get("/doctors/profile");
       if (data) {
         updateUserProfile({
-          ...user,
-          doctorProfile: {
-            ...user.doctorProfile,
-            ...data,
-            profileImage: data.profileImage || null
-          }
+          ...data,
+          profileImage: data.profileImage 
+            ? `${data.profileImage}?v=${Date.now()}` // Cache busting
+            : null
         });
       }
     } catch (error) {
@@ -96,6 +96,7 @@ const DoctorDashboard = () => {
     }
   };
 
+  // Combined data fetching with loading states
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -117,6 +118,7 @@ const DoctorDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Appointment status update handler
   const updateStatus = async (appointmentId, status) => {
     try {
       const { data } = await api.put(`/doctors/appointments/${appointmentId}`, { status });
@@ -149,6 +151,7 @@ const DoctorDashboard = () => {
     }
   };
 
+  // Profile image upload handler with persistence
   const handleProfileUpdate = async (file) => {
     try {
       const formData = new FormData();
@@ -161,6 +164,7 @@ const DoctorDashboard = () => {
       });
       
       if (data.success) {
+        // Force immediate refresh with cache busting
         await fetchProfile();
         toast.success("Profile image updated successfully!");
       }
@@ -267,6 +271,7 @@ const DoctorDashboard = () => {
                     className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
                     onError={(e) => {
                       e.target.src = '/default-profile.jpg';
+                      updateUserProfile({ profileImage: null }); // Clear invalid image
                     }}
                   />
                 ) : (

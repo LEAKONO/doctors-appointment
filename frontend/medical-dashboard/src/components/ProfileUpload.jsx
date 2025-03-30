@@ -40,11 +40,7 @@ const ProfileUpload = ({ onSuccess }) => {
             : null;
           
           updateUserProfile({
-            ...user,
-            doctorProfile: {
-              ...user.doctorProfile,
-              profileImage: updatedImage
-            }
+            profileImage: updatedImage
           });
           
           toast.success("Profile image updated!");

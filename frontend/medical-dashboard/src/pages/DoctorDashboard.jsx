@@ -123,6 +123,14 @@ const DoctorDashboard = () => {
   }, []);
 
   const updateStatus = async (appointmentId, status) => {
+    // Validate the status first
+    const validStatuses = ['pending', 'confirmed', 'completed', 'cancelled'];
+    
+    if (!validStatuses.includes(status)) {
+        toast.error(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+        return;
+    }
+
     try {
         const { data } = await api.put(`/doctors/appointments/${appointmentId}`, { status });
 

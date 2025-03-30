@@ -31,7 +31,6 @@ const DoctorDashboard = () => {
     rejected: 0
   });
 
-  // Enhanced fetch function with error boundaries
   const fetchAppointments = async () => {
     try {
       const response = await api.get("/doctors/appointments");
@@ -78,26 +77,30 @@ const DoctorDashboard = () => {
     }
   };
 
-const fetchProfile = async () => {
-  try {
-    const { data } = await api.get("/doctors/profile");
-    if (data) {
-      updateUserProfile({
-        ...user, 
-        doctorProfile: {
-          ...user.doctorProfile, 
-          ...data, 
-          profileImage: data.profileImage 
-            ? `${data.profileImage}?v=${Date.now()}` 
-            : user.doctorProfile?.profileImage 
-        }
-      });
+  const fetchProfile = async () => {
+    try {
+      const { data } = await api.get("/doctors/profile");
+      if (data?.doctor) {
+        // Add cache busting parameter to the image URL
+        const profileImage = data.doctor.profileImage 
+          ? `${data.doctor.profileImage}?v=${Date.now()}`
+          : null;
+        
+        updateUserProfile({
+          ...user, 
+          doctorProfile: {
+            ...user.doctorProfile, 
+            ...data.doctor,
+            profileImage
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      toast.error("Failed to load profile data");
     }
-  } catch (error) {
-    console.error("Error fetching profile:", error);
-    toast.error("Failed to load profile data");
-  }
-};
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -119,7 +122,6 @@ const fetchProfile = async () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Appointment status update handler
   const updateStatus = async (appointmentId, status) => {
     try {
       const { data } = await api.put(`/doctors/appointments/${appointmentId}`, { status });
@@ -164,13 +166,14 @@ const fetchProfile = async () => {
       });
       
       if (data.success) {
+        // Force refresh by adding timestamp
+        const newImageUrl = data.profileImage ? `${data.profileImage}?v=${Date.now()}` : null;
+        
         updateUserProfile({
           ...user,
           doctorProfile: {
             ...user.doctorProfile,
-            profileImage: data.profileImage 
-              ? `${data.profileImage}?v=${Date.now()}`
-              : null
+            profileImage: newImageUrl
           }
         });
         
@@ -279,8 +282,8 @@ const fetchProfile = async () => {
                     alt="Profile"
                     className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
                     onError={(e) => {
+                      e.target.onerror = null;
                       e.target.src = '/default-profile.jpg';
-                      updateUserProfile({ profileImage: null }); // Clear invalid image
                     }}
                   />
                 ) : (

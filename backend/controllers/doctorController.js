@@ -41,7 +41,7 @@ exports.setAvailability = async (req, res) => {
 
     const doctor = await Doctor.findOneAndUpdate(
       { userId: req.user.userId, isDeleted: { $ne: true } },
-      { $addToSet: { availableSlots: { $each: validSlots } } }, // Using $addToSet to prevent duplicates
+      { $addToSet: { availableSlots: { $each: validSlots } } },
       { new: true, runValidators: true }
     );
 
@@ -172,7 +172,7 @@ exports.getDoctorProfile = async (req, res) => {
       phone: doctor.userId.phone,
       specialty: doctor.specialty,
       qualifications: doctor.qualifications,
-      profileImage: doctor.profileImage,
+      profileImage: doctor.profileImage ? `${doctor.profileImage}?v=${Date.now()}` : null,
       availableSlots: doctor.availableSlots,
       bio: doctor.bio,
       consultationFee: doctor.consultationFee
@@ -216,7 +216,7 @@ exports.getAllDoctors = async (req, res) => {
         phone: doctor.userId?.phone || '',
         specialty: doctor.specialty || 'General Practitioner',
         qualifications: doctor.qualifications || '',
-        profileImage: doctor.profileImage || '/default-profile.jpg',
+        profileImage: doctor.profileImage ? `${doctor.profileImage}?v=${Date.now()}` : '/default-profile.jpg',
         availableSlots: Array.isArray(doctor.availableSlots) ? doctor.availableSlots : [],
         consultationFee: doctor.consultationFee || 0,
         rating: doctor.rating || 0
@@ -379,7 +379,7 @@ exports.uploadProfileImage = async (req, res) => {
 
     res.json({
       success: true,
-      profileImage: result.secure_url,
+      profileImage: `${result.secure_url}?v=${Date.now()}`,
       message: "Profile image updated successfully"
     });
 

@@ -37,19 +37,17 @@ export const AuthProvider = ({ children }) => {
 
       const { data: userData } = await api.get("/users/me");
       const completeUser = {
-        ...userData,
+        id: userData._id,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role || 'patient',
         doctorProfile: null
       };
 
       if (completeUser.role === 'doctor') {
         try {
           const { data: profileData } = await api.get("/doctors/profile");
-          completeUser.doctorProfile = {
-            ...profileData,
-            profileImage: profileData.profileImage 
-              ? `${profileData.profileImage}?v=${Date.now()}`
-              : null
-          };
+          completeUser.doctorProfile = profileData;
         } catch (profileError) {
           console.error("Doctor profile fetch error:", profileError);
         }
@@ -78,7 +76,10 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("token", data.token);
       
       const newUser = {
-        ...data,
+        id: data.userId || data._id,
+        name: data.name,
+        email: data.email,
+        role: data.role || 'patient',
         doctorProfile: null
       };
 
@@ -111,7 +112,7 @@ export const AuthProvider = ({ children }) => {
           ...prev.doctorProfile,
           ...updates,
           profileImage: updates.profileImage 
-            ? `${updates.profileImage.split('?')[0]}?v=${Date.now()}`
+            ? `${updates.profileImage.split('?')[0]}?t=${Date.now()}` 
             : prev.doctorProfile?.profileImage
         }
       };
@@ -132,19 +133,17 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data } = await api.get("/users/me");
       const userData = {
-        ...data,
+        id: data._id,
+        name: data.name,
+        email: data.email,
+        role: data.role || 'patient',
         doctorProfile: null
       };
 
       if (data.role === 'doctor') {
         try {
           const { data: profileData } = await api.get("/doctors/profile");
-          userData.doctorProfile = {
-            ...profileData,
-            profileImage: profileData.profileImage 
-              ? `${profileData.profileImage}?v=${Date.now()}`
-              : null
-          };
+          userData.doctorProfile = profileData;
         } catch (error) {
           console.error("Couldn't fetch doctor profile", error);
         }

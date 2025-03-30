@@ -8,6 +8,7 @@ import { FiUpload, FiImage } from "react-icons/fi";
 const ProfileUpload = ({ onSuccess }) => {
   const { user, updateUserProfile } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
+  const [version, setVersion] = useState(0); // Force re-render
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -34,18 +35,10 @@ const ProfileUpload = ({ onSuccess }) => {
           }
         });
 
-        if (data?.success) {
-          const updatedImage = data.profileImage 
-            ? `${data.profileImage}?v=${Date.now()}`
-            : null;
-          
-          updateUserProfile({
-            profileImage: updatedImage
-          });
-          
-          toast.success("Profile image updated!");
-          onSuccess?.(updatedImage);
-        }
+        updateUserProfile({ profileImage: data.profileImage });
+        setVersion(v => v + 1); // Force image reload
+        toast.success("Profile image updated!");
+        onSuccess?.(data.profileImage);
       } catch (error) {
         const message = error.response?.data?.message || 
                        error.message || 
@@ -72,7 +65,8 @@ const ProfileUpload = ({ onSuccess }) => {
       <div className="flex flex-col items-center justify-center text-center">
         {user?.doctorProfile?.profileImage ? (
           <img
-            src={user.doctorProfile.profileImage}
+            key={`${user.doctorProfile.profileImage}-${version}`}
+            src={`${user.doctorProfile.profileImage}?v=${version}`}
             className="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-2 border-gray-200"
             alt="Profile"
             onError={(e) => {

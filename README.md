@@ -172,8 +172,8 @@ Content-Type: application/json
 | Role  | Email | Password |
 |-------|--------------------------|-----------|
 | Admin | leakonoemmanuel@gmail.com | leakono |
-| Doctor | joel@gmail.com | saitore |
-| Patient | kailinliberty@gmail.com | nashami |
+| Doctor | cole@gmail.com| palmer1 |
+| Patient | zaire@gmail.com | 123456|
 
 ## 🛠️ Future Enhancements
 - Video consultation integration

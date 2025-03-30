@@ -447,12 +447,10 @@ exports.uploadProfileImage = async (req, res) => {
       });
     }
 
-    // Delete old image if exists
     if (doctor.profileImage) {
       await deleteCloudinaryImage(doctor.profileImage);
     }
 
-    // Upload with cache invalidation settings
     const result = await cloudinary.uploader.upload(req.file.path, {
       folder: 'doctor_profiles',
       public_id: `profile_${req.user.userId}`,

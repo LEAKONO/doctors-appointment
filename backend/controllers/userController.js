@@ -115,7 +115,7 @@ exports.upgradeToDoctor = async (req, res) => {
     }
 
     const { userId, specialty, qualifications } = req.body;
-    const profileImage = req.file?.path || ''; // Will be Cloudinary URL if uploaded
+    const profileImage = req.file?.path || '';
 
     if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ success: false, msg: 'Valid user ID is required' });
@@ -143,9 +143,19 @@ exports.upgradeToDoctor = async (req, res) => {
 
     await sendEmail(user.email, "Your Doctor Account is Ready!", `
       Dear ${user.name},
-      🎉 Congratulations! Your account has been successfully upgraded.
+
+      🎉 Congratulations! Your account has been successfully upgraded to a doctor.
+
       🔹 Specialty: ${specialty}  
       🔹 Qualifications: ${qualifications}  
+
+      You can now log in to the system and:
+      ✅ Set your availability  
+      ✅ Upload your profile image (visible to patients)  
+      ✅ Manage your appointments  
+
+      👉 [Login Here](https://doctors-appointment-rjn9.vercel.app/)
+
       Best regards,  
       Healthcare Team
     `);
@@ -161,7 +171,6 @@ exports.upgradeToDoctor = async (req, res) => {
     return res.status(500).json({ success: false, msg: 'Server error during upgrade', error: err.message });
   }
 };
-
 exports.deleteUser = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();

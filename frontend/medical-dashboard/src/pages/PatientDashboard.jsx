@@ -70,7 +70,7 @@ const PatientDashboard = () => {
       return appointmentsData.map(appointment => {
         const doctor = doctorsList.find(d => 
           d._id === appointment.doctorId?._id || 
-          d._id === appointment.doctorId // Handle case where doctorId might be just the ID string
+          d._id === appointment.doctorId
         );
         
         return {
@@ -78,7 +78,6 @@ const PatientDashboard = () => {
           date: new Date(appointment.date),
           doctorId: doctor ? {
             ...doctor,
-            // Modified to properly handle doctor name
             userId: {
               _id: doctor?.userId?._id || doctor?.userId || "unknown",
               name: doctor?.name || doctor?.userId?.name || "Unknown Doctor",
@@ -235,7 +234,6 @@ const PatientDashboard = () => {
 
       await api.delete(`/appointments/cancel/${appointmentId}`);
 
-      
     } catch (err) {
       console.error("Deletion error:", err);
       
@@ -274,7 +272,7 @@ const PatientDashboard = () => {
     return (
       <div className="flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
         <Sidebar role="patient" />
-        <main className="flex-1 p-8 fade-in">
+        <main className="flex-1 p-4 md:p-8 fade-in overflow-x-hidden">
           <div className="h-8 bg-gray-200 rounded w-1/4 mb-6 animate-pulse"></div>
           
           <section className="mb-12">
@@ -302,54 +300,71 @@ const PatientDashboard = () => {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       <Sidebar role="patient" />
-      <main className="flex-1 p-8 relative fade-in">
-        <div className="mb-8">
+      <main className="flex-1 p-4 md:p-8 relative fade-in overflow-x-hidden">
+        <div className="mb-6 md:mb-8">
           <motion.h1 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl font-bold text-gray-800 mb-1"
+            transition={{ duration: 0.3 }}
+            className="text-2xl md:text-3xl font-bold text-gray-800 mb-1"
           >
-            Welcome back, {user?.name || 'Patient'}
+            Welcome back, <span className="text-blue-600">{user?.name || 'Patient'}</span>
           </motion.h1>
-          <p className="text-gray-600">Here's what's happening with your appointments</p>
+          <p className="text-gray-600 text-sm md:text-base">
+            Here's what's happening with your appointments
+          </p>
         </div>
 
         {/* Search Bar Section */}
-        <div className="mb-8">
-          <div className="relative w-full max-w-2xl">
+        <div className="mb-6 md:mb-8">
+          <div className="relative w-full max-w-2xl mx-auto">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FiSearch className="text-gray-400 text-lg" />
             </div>
             <input
               type="text"
               placeholder="Search doctors by name or specialty..."
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm transition duration-200"
+              className="block w-full pl-10 pr-3 py-2 md:py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm transition duration-200"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
-        <section className="mb-12">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold text-gray-800">Available Doctors</h2>
-            <span className="text-sm text-gray-500">
+        <section className="mb-10 md:mb-12">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 md:mb-6 gap-2">
+            <h2 className="text-xl md:text-2xl font-semibold text-gray-800">
+              Available Doctors
+            </h2>
+            <span className="text-xs md:text-sm text-gray-500">
               {filteredDoctors.length} {filteredDoctors.length === 1 ? 'doctor' : 'doctors'} found
             </span>
           </div>
           
           {filteredDoctors.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {filteredDoctors.map((doctor) => (
                 <motion.div 
                   key={doctor._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
+                  transition={{ duration: 0.3 }}
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300"
                 >
-                  <div className="p-6">
-                    <div className="flex items-center mb-4">
-                      <div className="relative w-16 h-16 mr-4">
+                  <div className="p-4 md:p-6">
+                    <div className="flex items-center mb-3 md:mb-4">
+                      <div className="relative w-12 h-12 md:w-16 md:h-16 mr-3 md:mr-4">
                         {!imagesLoaded[doctor._id] && (
                           <div className="absolute inset-0 rounded-full bg-gray-200 animate-pulse"></div>
                         )}
@@ -367,31 +382,33 @@ const PatientDashboard = () => {
                         />
                       </div>
                       <div>
-                        <h3 className="text-lg font-bold text-gray-800">{doctor.name}</h3>
-                        <p className="text-blue-600 font-medium">{doctor.specialty}</p>
+                        <h3 className="text-base md:text-lg font-bold text-gray-800">{doctor.name}</h3>
+                        <p className="text-blue-600 font-medium text-sm md:text-base">
+                          {doctor.specialty}
+                        </p>
                       </div>
                     </div>
 
                     {doctor.qualifications && (
-                      <div className="flex items-center text-sm text-gray-600 mb-4">
-                        <FiAward className="mr-2 text-blue-500" />
-                        <span>{doctor.qualifications}</span>
+                      <div className="flex items-center text-xs md:text-sm text-gray-600 mb-3 md:mb-4">
+                        <FiAward className="mr-2 text-blue-500 flex-shrink-0" />
+                        <span className="truncate">{doctor.qualifications}</span>
                       </div>
                     )}
 
-                    <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                        <FiCalendar className="mr-2 text-blue-500" />
+                    <div className="mb-0 md:mb-2">
+                      <h4 className="text-xs md:text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                        <FiCalendar className="mr-2 text-blue-500 flex-shrink-0" />
                         Available Slots
                       </h4>
-                      <ul className="space-y-2">
+                      <ul className="space-y-2 max-h-40 overflow-y-auto pr-2">
                         {doctor.availableSlots?.length > 0 ? (
                           doctor.availableSlots.map((slot, index) => {
                             const slotKey = `${doctor._id}-${slot}`;
                             const isBooking = bookingLoading === slotKey;
                             return (
                               <li key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
-                                <span className="text-sm text-gray-700">
+                                <span className="text-xs md:text-sm text-gray-700">
                                   {new Date(slot).toLocaleString([], {
                                     month: 'short',
                                     day: 'numeric',
@@ -400,11 +417,11 @@ const PatientDashboard = () => {
                                   })}
                                 </span>
                                 <button
-                                  className={`py-1 px-3 rounded-lg transition duration-200 text-sm font-medium ${
+                                  className={`py-1 px-2 md:px-3 rounded-lg transition duration-200 text-xs md:text-sm font-medium ${
                                     isBooking 
                                       ? 'bg-blue-400 text-white cursor-not-allowed' 
                                       : 'bg-blue-500 text-white hover:bg-blue-600'
-                                  } shadow-sm`}
+                                  } shadow-sm whitespace-nowrap`}
                                   onClick={() => bookAppointment(doctor._id, slot)}
                                   disabled={isBooking || bookingLoading}
                                 >
@@ -414,7 +431,7 @@ const PatientDashboard = () => {
                             );
                           })
                         ) : (
-                          <li className="text-sm text-gray-500 bg-gray-50 p-2 rounded-lg">
+                          <li className="text-xs md:text-sm text-gray-500 bg-gray-50 p-2 rounded-lg">
                             No available slots
                           </li>
                         )}
@@ -425,9 +442,13 @@ const PatientDashboard = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-white rounded-xl shadow-sm">
-              <FiSearch className="mx-auto text-4xl text-gray-400 mb-4" />
-              <p className="text-gray-500 text-lg">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-8 md:py-12 bg-white rounded-xl shadow-sm"
+            >
+              <FiSearch className="mx-auto text-3xl md:text-4xl text-gray-400 mb-3 md:mb-4" />
+              <p className="text-gray-500 text-base md:text-lg">
                 {searchTerm ? 
                   `No doctors found matching "${searchTerm}"` : 
                   'No doctors available at the moment'}
@@ -435,19 +456,21 @@ const PatientDashboard = () => {
               {searchTerm && (
                 <button 
                   onClick={() => setSearchTerm('')}
-                  className="mt-4 text-blue-500 hover:text-blue-700 font-medium"
+                  className="mt-3 md:mt-4 text-blue-500 hover:text-blue-700 font-medium text-sm md:text-base"
                 >
                   Clear search
                 </button>
               )}
-            </div>
+            </motion.div>
           )}
         </section>
 
-        <section id="appointments-section" className="mb-12">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold text-gray-800">My Appointments</h2>
-            <span className="text-sm text-gray-500">
+        <section id="appointments-section" className="mb-10 md:mb-12">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 md:mb-6 gap-2">
+            <h2 className="text-xl md:text-2xl font-semibold text-gray-800">
+              My Appointments
+            </h2>
+            <span className="text-xs md:text-sm text-gray-500">
               {appointments.length} {appointments.length === 1 ? 'appointment' : 'appointments'} total
             </span>
           </div>
@@ -457,22 +480,22 @@ const PatientDashboard = () => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <div className="flex items-center">
-                        <FiUser className="mr-2" />
-                        Doctor
+                        <FiUser className="mr-1 md:mr-2" />
+                        <span className="whitespace-nowrap">Doctor</span>
                       </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       <div className="flex items-center">
-                        <FiCalendar className="mr-2" />
-                        Date & Time
+                        <FiCalendar className="mr-1 md:mr-2" />
+                        <span className="whitespace-nowrap">Date & Time</span>
                       </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -485,18 +508,19 @@ const PatientDashboard = () => {
                         id={`appointment-${appointment._id}`}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
+                        transition={{ duration: 0.2 }}
                         className="hover:bg-gray-50 transition-colors"
                       >
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 relative">
+                            <div className="flex-shrink-0 h-8 w-8 md:h-10 md:w-10 relative">
                               {appointment.doctorId ? (
                                 <>
                                   {!appointmentImagesLoaded[appointment._id] && (
                                     <div className="absolute inset-0 rounded-full bg-gray-200 animate-pulse"></div>
                                   )}
                                   <img 
-                                    className={`h-10 w-10 rounded-full object-cover ${
+                                    className={`h-8 w-8 md:h-10 md:w-10 rounded-full object-cover ${
                                       !appointmentImagesLoaded[appointment._id] ? 'opacity-0' : 'opacity-100'
                                     }`}
                                     src={appointment.doctorId?.profileImage || '/default-profile.jpg'} 
@@ -509,21 +533,21 @@ const PatientDashboard = () => {
                                   />
                                 </>
                               ) : (
-                                <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                  <FiUser className="text-gray-400" />
+                                <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                  <FiUser className="text-gray-400 text-sm md:text-base" />
                                 </div>
                               )}
                             </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900 flex items-center">
+                            <div className="ml-2 md:ml-4">
+                              <div className="text-xs md:text-sm font-medium text-gray-900 flex items-center">
                                 {!appointment.doctorId && (
-                                  <FiAlertTriangle className="text-yellow-500 mr-1" />
+                                  <FiAlertTriangle className="text-yellow-500 mr-1 text-xs md:text-sm" />
                                 )}
                                 {appointment.doctorId?.name || 
                                  appointment.doctorId?.userId?.name || 
                                  "Doctor Deleted"}
                               </div>
-                              <div className="text-sm text-gray-500">
+                              <div className="text-xs md:text-sm text-gray-500">
                                 {appointment.doctorId?.specialty || 
                                  appointment.doctorId?.userId?.specialty || 
                                  "Specialty not available"}
@@ -531,23 +555,23 @@ const PatientDashboard = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
+                        <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap">
+                          <div className="text-xs md:text-sm text-gray-900">
                             {new Date(appointment.date).toLocaleDateString([], {
                               year: 'numeric',
-                              month: 'long',
+                              month: 'short',
                               day: 'numeric'
                             })}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-xs md:text-sm text-gray-500">
                             {new Date(appointment.date).toLocaleTimeString([], {
                               hour: '2-digit',
                               minute: '2-digit'
                             })}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 inline-flex text-xs leading-4 md:leading-5 font-semibold rounded-full ${
                             appointment.status === 'confirmed' 
                               ? 'bg-green-100 text-green-800' 
                               : appointment.status === 'cancelled' 
@@ -557,18 +581,18 @@ const PatientDashboard = () => {
                             {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-right text-xs md:text-sm font-medium">
                           {appointment.status !== 'cancelled' && (
                             <button
                               onClick={() => cancelAppointment(appointment._id)}
                               disabled={deletingAppointment === appointment._id}
-                              className={`flex items-center space-x-1 px-3 py-1 rounded-lg transition duration-200 ${
+                              className={`flex items-center space-x-1 px-2 py-1 md:px-3 md:py-1 rounded-lg transition duration-200 ${
                                 deletingAppointment === appointment._id
                                   ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
                                   : 'bg-red-100 text-red-600 hover:bg-red-200'
                               }`}
                             >
-                              <FiTrash2 className="text-sm" />
+                              <FiTrash2 className="text-xs md:text-sm" />
                               <span>{deletingAppointment === appointment._id ? 'Cancelling...' : 'Cancel'}</span>
                             </button>
                           )}
@@ -577,11 +601,15 @@ const PatientDashboard = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="4" className="px-6 py-12 text-center">
+                      <td colSpan="4" className="px-6 py-8 md:py-12 text-center">
                         <div className="flex flex-col items-center justify-center">
-                          <FiCalendar className="text-4xl text-gray-400 mb-4" />
-                          <p className="text-gray-500 text-lg">No appointments scheduled yet</p>
-                          <p className="text-gray-400 mt-1">Book your first appointment with a doctor above</p>
+                          <FiCalendar className="text-3xl md:text-4xl text-gray-400 mb-3 md:mb-4" />
+                          <p className="text-gray-500 text-base md:text-lg">
+                            No appointments scheduled yet
+                          </p>
+                          <p className="text-gray-400 mt-1 text-sm md:text-base">
+                            Book your first appointment with a doctor above
+                          </p>
                         </div>
                       </td>
                     </tr>

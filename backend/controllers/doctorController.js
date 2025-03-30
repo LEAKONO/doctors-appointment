@@ -21,57 +21,40 @@ const deleteCloudinaryImage = async (imageUrl) => {
   } catch (error) {
     console.error('Error deleting Cloudinary image:', error);
   }
-  exports.setAvailability = async (req, res) => {
-    try {
-      if (req.user.role !== 'doctor') {
-        return res.status(403).json({ success: false, message: 'Only doctors can set availability' });
-      }
-  
-      const { availableSlots } = req.body;
-      if (!Array.isArray(availableSlots)) {
-        return res.status(400).json({ success: false, message: 'Available slots must be an array' });
-      }
-  
-      const now = new Date();
-      
-      // First remove all outdated slots
-      await Doctor.findOneAndUpdate(
-        { userId: req.user.userId, isDeleted: { $ne: true } },
-        { $pull: { availableSlots: { $lt: now.toISOString() } } },
-        { new: true }
-      );
-  
-      // Then add new valid slots (future slots only)
-      const validSlots = availableSlots
-        .map(slot => new Date(slot))
-        .filter(date => !isNaN(date) && date > now)
-        .map(date => date.toISOString());
-  
-      const doctor = await Doctor.findOneAndUpdate(
-        { userId: req.user.userId, isDeleted: { $ne: true } },
-        { $addToSet: { availableSlots: { $each: validSlots } } },
-        { new: true, runValidators: true }
-      );
-  
-      if (!doctor) {
-        return res.status(404).json({ success: false, message: 'Doctor not found' });
-      }
-  
-      // Return only future slots in the response
-      const futureSlots = doctor.availableSlots
-        .filter(slot => new Date(slot) > now)
-        .sort((a, b) => new Date(a) - new Date(b));
-  
-      res.json({ 
-        success: true, 
-        availableSlots: futureSlots,
-        message: 'Availability updated successfully'
-      });
-    } catch (err) {
-      console.error("Error in setAvailability:", err);
-      res.status(500).json({ success: false, message: 'Server error', error: err.message });
+};
+
+exports.setAvailability = async (req, res) => {
+  try {
+    if (req.user.role !== 'doctor') {
+      return res.status(403).json({ success: false, message: 'Only doctors can set availability' });
     }
-  };
+
+    const { availableSlots } = req.body;
+    if (!Array.isArray(availableSlots)) {
+      return res.status(400).json({ success: false, message: 'Available slots must be an array' });
+    }
+
+    const validSlots = availableSlots
+      .map(slot => new Date(slot))
+      .filter(date => !isNaN(date) && date > new Date())
+      .map(date => date.toISOString());
+
+    const doctor = await Doctor.findOneAndUpdate(
+      { userId: req.user.userId, isDeleted: { $ne: true } },
+      { $addToSet: { availableSlots: { $each: validSlots } } },
+      { new: true, runValidators: true }
+    );
+
+    if (!doctor) {
+      return res.status(404).json({ success: false, message: 'Doctor not found' });
+    }
+
+    res.json({ success: true, availableSlots: doctor.availableSlots });
+  } catch (err) {
+    console.error("Error in setAvailability:", err);
+    res.status(500).json({ success: false, message: 'Server error', error: err.message });
+  }
+};
 
 exports.updateDoctorProfile = async (req, res) => {
   try {
@@ -393,6 +376,7 @@ exports.uploadProfileImage = async (req, res) => {
     doctor.profileImage = freshUrl;
     await doctor.save();
 
+    // Clean up temp file
     if (req.file.path && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }

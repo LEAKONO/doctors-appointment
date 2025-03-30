@@ -224,83 +224,83 @@ const DoctorDashboard = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 overflow-x-hidden">
       <Sidebar role="doctor" />
       
-      <main className="flex-1 p-4 md:p-8">
+      <main className="flex-1 p-4 md:p-8 overflow-x-hidden">
         {/* Header Section */}
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <motion.h1 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl font-bold text-gray-800 mb-1"
+            className="text-2xl md:text-3xl font-bold text-gray-800 mb-1"
           >
             {getDisplayName()}
           </motion.h1>
           
           {user?.email && (
-            <p className="text-gray-600 mb-4 flex items-center">
+            <p className="text-gray-600 mb-4 flex items-center text-sm md:text-base">
               <FiMail className="mr-2" /> {user.email}
             </p>
           )}
           
-          <div className="w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mb-6"></div>
+          <div className="w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mb-4 md:mb-6"></div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
           {Object.entries(stats).map(([key, value], index) => (
             <motion.div 
               key={key}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`bg-white rounded-xl shadow-md p-4 border-l-4 ${
+              className={`bg-white rounded-lg md:rounded-xl shadow-sm md:shadow-md p-3 md:p-4 border-l-4 ${
                 key === 'total' ? 'border-blue-500' :
                 key === 'confirmed' ? 'border-green-500' :
                 key === 'pending' ? 'border-yellow-500' : 'border-red-500'
               }`}
             >
-              <h3 className="text-sm font-medium text-gray-500 capitalize">
+              <h3 className="text-xs md:text-sm font-medium text-gray-500 capitalize">
                 {key.replace('_', ' ')}
               </h3>
-              <p className="text-2xl font-bold text-gray-800">{value}</p>
+              <p className="text-xl md:text-2xl font-bold text-gray-800">{value}</p>
             </motion.div>
           ))}
         </div>
 
         {/* Profile and Availability Section */}
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
           {/* Profile Card */}
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl shadow-lg p-6 border border-gray-100"
+            className="bg-white rounded-xl shadow-md md:shadow-lg p-4 md:p-6 border border-gray-100"
           >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-800 flex items-center">
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <h2 className="text-lg md:text-xl font-semibold text-gray-800 flex items-center">
                 <FiUser className="mr-2 text-blue-500" />
                 Profile Settings
               </h2>
             </div>
             
-            <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
+            <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 md:space-x-6">
               <div className="relative">
                 {loading ? (
-                  <div className="w-24 h-24 rounded-full bg-gray-200 animate-pulse"></div>
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gray-200 animate-pulse"></div>
                 ) : user?.doctorProfile?.profileImage ? (
                   <img
                     src={user.doctorProfile.profileImage}
                     alt="Profile"
-                    className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
+                    className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover border-2 md:border-4 border-white shadow-sm md:shadow-md"
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.src = '/default-profile.jpg';
                     }}
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-4xl font-bold text-blue-600 border-4 border-white shadow-md">
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-3xl md:text-4xl font-bold text-blue-600 border-2 md:border-4 border-white shadow-sm md:shadow-md">
                     {user?.doctorProfile?.name?.charAt(0) || user?.name?.charAt(0) || "D"}
                   </div>
                 )}
@@ -308,22 +308,22 @@ const DoctorDashboard = () => {
               
               <div className="flex-1 w-full">
                 <ProfileUpload onUpload={handleProfileUpdate} />
-                <div className="mt-4 space-y-2">
+                <div className="mt-3 md:mt-4 space-y-1 md:space-y-2">
                   {user?.doctorProfile?.specialty && (
                     <div className="flex items-center">
                       <FiAward className="text-blue-500 mr-2" />
-                      <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                      <span className="bg-blue-100 text-blue-800 px-2 py-0.5 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-medium">
                         {user.doctorProfile.specialty}
                       </span>
                     </div>
                   )}
                   {user?.doctorProfile?.qualifications && (
-                    <p className="text-gray-600 text-sm">
+                    <p className="text-gray-600 text-xs md:text-sm">
                       {user.doctorProfile.qualifications}
                     </p>
                   )}
                   {user?.doctorProfile?.phone && (
-                    <div className="flex items-center text-gray-600">
+                    <div className="flex items-center text-gray-600 text-xs md:text-sm">
                       <FiPhone className="mr-2" /> {user.doctorProfile.phone}
                     </div>
                   )}
@@ -337,9 +337,9 @@ const DoctorDashboard = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl shadow-lg p-6 border border-gray-100"
+            className="bg-white rounded-xl shadow-md md:shadow-lg p-4 md:p-6 border border-gray-100"
           >
-            <h2 className="text-xl font-semibold text-gray-800 flex items-center mb-4">
+            <h2 className="text-lg md:text-xl font-semibold text-gray-800 flex items-center mb-3 md:mb-4">
               <FiClock className="mr-2 text-blue-500" />
               Manage Availability
             </h2>
@@ -352,18 +352,18 @@ const DoctorDashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl shadow-lg p-6 border border-gray-100"
+          className="bg-white rounded-xl shadow-md md:shadow-lg p-4 md:p-6 border border-gray-100"
         >
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 space-y-4 md:space-y-0">
-            <h2 className="text-xl font-semibold text-gray-800 flex items-center">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6 space-y-3 md:space-y-0">
+            <h2 className="text-lg md:text-xl font-semibold text-gray-800 flex items-center">
               <FiCalendar className="mr-2 text-blue-500" />
               Appointments Management
             </h2>
             
-            <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg">
+            <div className="flex space-x-1 md:space-x-2 bg-gray-100 p-1 rounded-lg">
               <button
                 onClick={() => setActiveTab("upcoming")}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                className={`px-2 py-1 text-xs md:text-sm rounded-md transition-colors ${
                   activeTab === "upcoming" ? "bg-blue-500 text-white shadow-sm" : "text-gray-600 hover:bg-gray-200"
                 }`}
               >
@@ -371,7 +371,7 @@ const DoctorDashboard = () => {
               </button>
               <button
                 onClick={() => setActiveTab("past")}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                className={`px-2 py-1 text-xs md:text-sm rounded-md transition-colors ${
                   activeTab === "past" ? "bg-blue-500 text-white shadow-sm" : "text-gray-600 hover:bg-gray-200"
                 }`}
               >
@@ -379,7 +379,7 @@ const DoctorDashboard = () => {
               </button>
               <button
                 onClick={() => setActiveTab("all")}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                className={`px-2 py-1 text-xs md:text-sm rounded-md transition-colors ${
                   activeTab === "all" ? "bg-blue-500 text-white shadow-sm" : "text-gray-600 hover:bg-gray-200"
                 }`}
               >
@@ -393,100 +393,102 @@ const DoctorDashboard = () => {
               <FiLoader className="animate-spin text-blue-500 text-2xl" />
             </div>
           ) : filteredAppointments.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-max">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Patient Details
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Appointment
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredAppointments.map((appointment) => (
-                    <motion.tr 
-                      key={appointment._id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <div className="text-sm font-medium text-gray-900 flex items-center">
-                            {!appointment.patientId?._id && (
-                              <FiAlertTriangle className="text-yellow-500 mr-1" />
-                            )}
-                            {appointment.patientId?.name || "Deleted Patient"}
-                          </div>
-                          {appointment.patientId?.email ? (
-                            <div className="text-sm text-gray-500 flex items-center mt-1">
-                              <FiMail className="mr-1.5" /> {appointment.patientId.email}
+            <div className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-max">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Patient Details
+                      </th>
+                      <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Appointment
+                      </th>
+                      <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-4 py-2 md:px-6 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredAppointments.map((appointment) => (
+                      <motion.tr 
+                        key={appointment._id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-4 py-3 md:px-6 md:py-4">
+                          <div className="flex flex-col min-w-[150px]">
+                            <div className="text-sm font-medium text-gray-900 flex items-center">
+                              {!appointment.patientId?._id && (
+                                <FiAlertTriangle className="text-yellow-500 mr-1" />
+                              )}
+                              {appointment.patientId?.name || "Deleted Patient"}
                             </div>
-                          ) : (
-                            <div className="text-sm text-gray-400 italic">Account deleted</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 font-medium">
-                          {new Date(appointment.date).toLocaleDateString([], {
-                            weekday: 'short',
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {new Date(appointment.date).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          {getStatusIcon(appointment.status)}
-                          <span className={`text-sm font-medium ${
-                            appointment.status === 'confirmed' ? 'text-green-600' :
-                            appointment.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
-                          }`}>
-                            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <select
-                          value={appointment.status}
-                          onChange={(e) => updateStatus(appointment._id, e.target.value)}
-                          className="block w-full pl-3 pr-10 py-2 text-sm border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md shadow-sm"
-                          disabled={!appointment.patientId?._id}
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="confirmed">Confirmed</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
+                            {appointment.patientId?.email ? (
+                              <div className="text-xs md:text-sm text-gray-500 flex items-center mt-1">
+                                <FiMail className="mr-1.5" /> {appointment.patientId.email}
+                              </div>
+                            ) : (
+                              <div className="text-xs md:text-sm text-gray-400 italic">Account deleted</div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 md:px-6 md:py-4">
+                          <div className="text-xs md:text-sm text-gray-900 font-medium">
+                            {new Date(appointment.date).toLocaleDateString([], {
+                              weekday: 'short',
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </div>
+                          <div className="text-xs md:text-sm text-gray-500">
+                            {new Date(appointment.date).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 md:px-6 md:py-4">
+                          <div className="flex items-center">
+                            {getStatusIcon(appointment.status)}
+                            <span className={`text-xs md:text-sm font-medium ${
+                              appointment.status === 'confirmed' ? 'text-green-600' :
+                              appointment.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
+                            }`}>
+                              {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 md:px-6 md:py-4">
+                          <select
+                            value={appointment.status}
+                            onChange={(e) => updateStatus(appointment._id, e.target.value)}
+                            className="block w-full pl-2 pr-8 py-1 md:py-2 text-xs md:text-sm border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md shadow-sm"
+                            disabled={!appointment.patientId?._id}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <FiCalendar className="mx-auto text-4xl text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900">
+            <div className="text-center py-8 md:py-12 bg-gray-50 rounded-lg">
+              <FiCalendar className="mx-auto text-3xl md:text-4xl text-gray-400 mb-3 md:mb-4" />
+              <h3 className="text-base md:text-lg font-medium text-gray-900">
                 No {activeTab} appointments
               </h3>
-              <p className="mt-1 text-sm text-gray-500 max-w-md mx-auto">
+              <p className="mt-1 text-xs md:text-sm text-gray-500 max-w-md mx-auto">
                 {activeTab === 'upcoming' ? 
                   "You currently don't have any upcoming appointments. New appointments will appear here when patients book with you." : 
                   "Your past appointment history will appear here."}

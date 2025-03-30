@@ -23,6 +23,7 @@ const deleteCloudinaryImage = async (imageUrl) => {
   }
 };
 
+// Remove the comma after deleteCloudinaryImage and ensure proper exports
 exports.setAvailability = async (req, res) => {
   try {
     if (req.user.role !== 'doctor') {
@@ -34,9 +35,17 @@ exports.setAvailability = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Available slots must be an array' });
     }
 
+    const now = new Date();
+    
+    await Doctor.findOneAndUpdate(
+      { userId: req.user.userId, isDeleted: { $ne: true } },
+      { $pull: { availableSlots: { $lt: now.toISOString() } } },
+      { new: true }
+    );
+
     const validSlots = availableSlots
       .map(slot => new Date(slot))
-      .filter(date => !isNaN(date) && date > new Date())
+      .filter(date => !isNaN(date) && date > now)
       .map(date => date.toISOString());
 
     const doctor = await Doctor.findOneAndUpdate(
@@ -49,12 +58,21 @@ exports.setAvailability = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Doctor not found' });
     }
 
-    res.json({ success: true, availableSlots: doctor.availableSlots });
+    const futureSlots = doctor.availableSlots
+      .filter(slot => new Date(slot) > now)
+      .sort((a, b) => new Date(a) - new Date(b));
+
+    res.json({ 
+      success: true, 
+      availableSlots: futureSlots,
+      message: 'Availability updated successfully'
+    });
   } catch (err) {
     console.error("Error in setAvailability:", err);
     res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 };
+
 
 exports.updateDoctorProfile = async (req, res) => {
   try {

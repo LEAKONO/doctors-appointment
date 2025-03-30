@@ -469,7 +469,7 @@ const DoctorDashboard = () => {
                         >
                           <option value="pending">Pending</option>
                           <option value="confirmed">Confirmed</option>
-                          <option value="rejected">Rejected</option>
+                          <option value="rejected">cancelled</option>
                         </select>
                       </td>
                     </motion.tr>

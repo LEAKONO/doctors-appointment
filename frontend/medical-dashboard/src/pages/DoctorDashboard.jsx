@@ -5,17 +5,17 @@ import ProfileUpload from "../components/ProfileUpload";
 import api from "../api/axios";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
-import {
-  FiCalendar,
-  FiUser,
-  FiClock,
-  FiCheckCircle,
-  FiXCircle,
-  FiLoader,
-  FiMail,
+import { 
+  FiCalendar, 
+  FiUser, 
+  FiClock, 
+  FiCheckCircle, 
+  FiXCircle, 
+  FiLoader, 
+  FiMail, 
   FiPhone,
   FiAlertTriangle,
-  FiAward,
+  FiAward
 } from "react-icons/fi";
 import { motion } from "framer-motion";
 
@@ -28,48 +28,41 @@ const DoctorDashboard = () => {
     total: 0,
     confirmed: 0,
     pending: 0,
-    rejected: 0,
+    rejected: 0
   });
 
-  // Enhanced fetch function with error boundaries
   const fetchAppointments = async () => {
     try {
       const response = await api.get("/doctors/appointments");
-
-      const appointmentsData = Array.isArray(response.data?.appointments)
-        ? response.data.appointments
-        : Array.isArray(response.data?.data)
-        ? response.data.data
-        : [];
-
-      const processedData = appointmentsData.map((appointment) => ({
+      
+      const appointmentsData = Array.isArray(response.data?.appointments) 
+        ? response.data.appointments 
+        : Array.isArray(response.data?.data) 
+          ? response.data.data 
+          : [];
+  
+      const processedData = appointmentsData.map(appointment => ({
         _id: appointment._id,
         date: appointment.date,
-        status: appointment.status || "pending",
-        patientId: appointment.patientId || {
-          _id: null,
+        status: appointment.status || 'pending',
+        patientId: appointment.patientId || { 
+          _id: null, 
           name: "Deleted Patient",
           email: "",
-          phone: "",
+          phone: ""
         },
         createdAt: appointment.createdAt,
-        updatedAt: appointment.updatedAt,
+        updatedAt: appointment.updatedAt
       }));
-
+  
       setAppointments(processedData);
-
+      
       const now = new Date();
       setStats({
         total: processedData.length,
-        confirmed: processedData.filter(
-          (a) => a.status === "confirmed" && new Date(a.date) >= now
-        ).length,
-        pending: processedData.filter(
-          (a) => a.status === "pending" && new Date(a.date) >= now
-        ).length,
-        rejected: processedData.filter(
-          (a) => a.status === "rejected" || new Date(a.date) < now
-        ).length,
+        confirmed: processedData.filter(a => a.status === 'confirmed' && new Date(a.date) >= now).length,
+        pending: processedData.filter(a => a.status === 'pending' && new Date(a.date) >= now).length,
+        rejected: processedData.filter(a => a.status === 'rejected' || new Date(a.date) < now).length
       });
     } catch (error) {
       console.error("Error fetching appointments:", error);
@@ -79,7 +72,7 @@ const DoctorDashboard = () => {
         total: 0,
         confirmed: 0,
         pending: 0,
-        rejected: 0,
+        rejected: 0
       });
     }
   };
@@ -93,10 +86,10 @@ const DoctorDashboard = () => {
           doctorProfile: {
             ...user.doctorProfile,
             ...data,
-            profileImage: data.profileImage
+            profileImage: data.profileImage 
               ? `${data.profileImage}?v=${Date.now()}`
-              : user.doctorProfile?.profileImage,
-          },
+              : user.doctorProfile?.profileImage
+          }
         });
       }
     } catch (error) {
@@ -104,6 +97,7 @@ const DoctorDashboard = () => {
       toast.error("Failed to load profile data");
     }
   };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -125,76 +119,62 @@ const DoctorDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Appointment status update handler
   const updateStatus = async (appointmentId, status) => {
     try {
-      const { data } = await api.put(`/doctors/appointments/${appointmentId}`, {
-        status,
-      });
-
+      const { data } = await api.put(`/doctors/appointments/${appointmentId}`, { status });
+      
       if (data?.success) {
-        setAppointments((prev) =>
-          prev.map((appointment) =>
-            appointment._id === appointmentId
-              ? {
-                  ...appointment,
-                  status: data.appointment.status,
-                }
-              : appointment
+        setAppointments(prev =>
+          prev.map(appointment => 
+            appointment._id === appointmentId ? { 
+              ...appointment, 
+              status: data.appointment.status
+            } : appointment
           )
         );
         fetchData();
         toast.success(`Appointment ${status}`, {
-          icon:
-            status === "confirmed" ? "✅" : status === "rejected" ? "❌" : "🕒",
+          icon: status === 'confirmed' ? '✅' : status === 'rejected' ? '❌' : '🕒',
           style: {
-            background:
-              status === "confirmed"
-                ? "#f0fdf4"
-                : status === "rejected"
-                ? "#fef2f2"
-                : "#fffbeb",
-            color:
-              status === "confirmed"
-                ? "#166534"
-                : status === "rejected"
-                ? "#991b1b"
-                : "#92400e",
-          },
+            background: status === 'confirmed' ? '#f0fdf4' : 
+                       status === 'rejected' ? '#fef2f2' : '#fffbeb',
+            color: status === 'confirmed' ? '#166534' : 
+                  status === 'rejected' ? '#991b1b' : '#92400e',
+          }
         });
       } else {
         toast.error(data?.message || "Failed to update status");
       }
     } catch (error) {
       console.error("Error updating status:", error);
-      toast.error(
-        error.response?.data?.message || "Failed to update appointment status"
-      );
+      toast.error(error.response?.data?.message || "Failed to update appointment status");
     }
   };
 
   const handleProfileUpdate = async (file) => {
     try {
       const formData = new FormData();
-      formData.append("image", file);
-
-      const { data } = await api.post("/doctors/upload-profile", formData, {
+      formData.append('image', file);
+      
+      const { data } = await api.post('/doctors/upload-profile', formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
-        },
+          'Content-Type': 'multipart/form-data'
+        }
       });
-
+      
       if (data.success) {
+        const updatedImage = data.profileImage 
+          ? `${data.profileImage}?v=${Date.now()}`
+          : null;
+        
         updateUserProfile({
           ...user,
           doctorProfile: {
             ...user.doctorProfile,
-            profileImage: data.profileImage
-              ? `${data.profileImage}?v=${Date.now()}`
-              : null,
-          },
+            profileImage: updatedImage
+          }
         });
-
+        
         await fetchProfile();
         toast.success("Profile image updated successfully!");
       }
@@ -209,22 +189,22 @@ const DoctorDashboard = () => {
     return `Dr. ${user?.doctorProfile?.name || user?.name || "Unknown"}`;
   };
 
-  const filteredAppointments = appointments.filter((appointment) => {
+  const filteredAppointments = appointments.filter(appointment => {
     const now = new Date();
     const appointmentDate = new Date(appointment.date);
-
+    
     if (activeTab === "upcoming") return appointmentDate >= now;
     if (activeTab === "past") return appointmentDate < now;
     return true;
   });
 
   const getStatusIcon = (status) => {
-    switch (status) {
-      case "confirmed":
+    switch(status) {
+      case 'confirmed':
         return <FiCheckCircle className="text-green-500 mr-1" />;
-      case "rejected":
+      case 'rejected':
         return <FiXCircle className="text-red-500 mr-1" />;
-      case "pending":
+      case 'pending':
         return <FiLoader className="text-yellow-500 mr-1 animate-spin" />;
       default:
         return null;
@@ -234,46 +214,41 @@ const DoctorDashboard = () => {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <Sidebar role="doctor" />
-
+      
       <main className="flex-1 p-4 md:p-8">
         <div className="mb-8">
-          <motion.h1
+          <motion.h1 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-3xl font-bold text-gray-800 mb-1"
           >
             {getDisplayName()}
           </motion.h1>
-
+          
           {user?.email && (
             <p className="text-gray-600 mb-4 flex items-center">
               <FiMail className="mr-2" /> {user.email}
             </p>
           )}
-
+          
           <div className="w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mb-6"></div>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {Object.entries(stats).map(([key, value], index) => (
-            <motion.div
+            <motion.div 
               key={key}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               className={`bg-white rounded-xl shadow-md p-4 border-l-4 ${
-                key === "total"
-                  ? "border-blue-500"
-                  : key === "confirmed"
-                  ? "border-green-500"
-                  : key === "pending"
-                  ? "border-yellow-500"
-                  : "border-red-500"
+                key === 'total' ? 'border-blue-500' :
+                key === 'confirmed' ? 'border-green-500' :
+                key === 'pending' ? 'border-yellow-500' : 'border-red-500'
               }`}
             >
               <h3 className="text-sm font-medium text-gray-500 capitalize">
-                {key.replace("_", " ")}
+                {key.replace('_', ' ')}
               </h3>
               <p className="text-2xl font-bold text-gray-800">{value}</p>
             </motion.div>
@@ -281,7 +256,7 @@ const DoctorDashboard = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 mb-8">
-          <motion.div
+          <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
@@ -293,39 +268,35 @@ const DoctorDashboard = () => {
                 Profile Settings
               </h2>
             </div>
-
+            
             <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
               <div className="relative">
                 {loading ? (
                   <div className="w-24 h-24 rounded-full bg-gray-200 animate-pulse"></div>
                 ) : user?.doctorProfile?.profileImage ? (
                   <img
-                    key={user.doctorProfile.profileImage} // Force re-render when image changes
-                    src={`${
-                      user.doctorProfile.profileImage.split("?")[0]
-                    }?v=${Date.now()}`}
+                    key={`profile-img-${user.doctorProfile.profileImage}`}
+                    src={`${user.doctorProfile.profileImage.split('?')[0]}?v=${Date.now()}`}
                     alt="Profile"
                     className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
                     onError={(e) => {
-                      e.target.src = "/default-profile.jpg";
+                      e.target.src = '/default-profile.jpg';
                       updateUserProfile({
                         ...user,
                         doctorProfile: {
                           ...user.doctorProfile,
-                          profileImage: null,
-                        },
+                          profileImage: null
+                        }
                       });
                     }}
                   />
                 ) : (
                   <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-4xl font-bold text-blue-600 border-4 border-white shadow-md">
-                    {user?.doctorProfile?.name?.charAt(0) ||
-                      user?.name?.charAt(0) ||
-                      "D"}
+                    {user?.doctorProfile?.name?.charAt(0) || user?.name?.charAt(0) || "D"}
                   </div>
                 )}
               </div>
-
+              
               <div className="flex-1 w-full">
                 <ProfileUpload onUpload={handleProfileUpdate} />
                 <div className="mt-4 space-y-2">
@@ -352,7 +323,7 @@ const DoctorDashboard = () => {
             </div>
           </motion.div>
 
-          <motion.div
+          <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}

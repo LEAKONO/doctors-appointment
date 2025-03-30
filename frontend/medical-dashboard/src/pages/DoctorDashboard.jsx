@@ -15,7 +15,8 @@ import {
   FiMail, 
   FiPhone,
   FiAlertTriangle,
-  FiAward
+  FiAward,
+  FiPlus
 } from "react-icons/fi";
 import { motion } from "framer-motion";
 
@@ -28,7 +29,7 @@ const DoctorDashboard = () => {
     total: 0,
     confirmed: 0,
     pending: 0,
-    rejected: 0
+    cancelled: 0
   });
 
   const fetchAppointments = async () => {
@@ -62,7 +63,7 @@ const DoctorDashboard = () => {
         total: processedData.length,
         confirmed: processedData.filter(a => a.status === 'confirmed' && new Date(a.date) >= now).length,
         pending: processedData.filter(a => a.status === 'pending' && new Date(a.date) >= now).length,
-        rejected: processedData.filter(a => a.status === 'rejected' || new Date(a.date) < now).length
+        cancelled: processedData.filter(a => a.status === 'cancelled' || new Date(a.date) < now).length
       });
     } catch (error) {
       console.error("Error fetching appointments:", error);
@@ -72,7 +73,7 @@ const DoctorDashboard = () => {
         total: 0,
         confirmed: 0,
         pending: 0,
-        rejected: 0
+        cancelled: 0
       });
     }
   };
@@ -81,7 +82,6 @@ const DoctorDashboard = () => {
     try {
       const { data } = await api.get("/doctors/profile");
       if (data?.doctor) {
-        // Add cache busting parameter to the image URL
         const profileImage = data.doctor.profileImage 
           ? `${data.doctor.profileImage}?v=${Date.now()}`
           : null;
@@ -123,7 +123,6 @@ const DoctorDashboard = () => {
   }, []);
 
   const updateStatus = async (appointmentId, status) => {
-    // Validate the status first
     const validStatuses = ['pending', 'confirmed', 'completed', 'cancelled'];
     
     if (!validStatuses.includes(status)) {
@@ -164,7 +163,7 @@ const DoctorDashboard = () => {
         console.error("Error updating status:", error);
         toast.error(error.response?.data?.message || "Failed to update appointment status");
     }
-};
+  };
 
   const handleProfileUpdate = async (file) => {
     try {
@@ -178,7 +177,6 @@ const DoctorDashboard = () => {
       });
       
       if (data.success) {
-        // Force refresh by adding timestamp
         const newImageUrl = data.profileImage ? `${data.profileImage}?v=${Date.now()}` : null;
         
         updateUserProfile({
@@ -216,7 +214,7 @@ const DoctorDashboard = () => {
     switch(status) {
       case 'confirmed':
         return <FiCheckCircle className="text-green-500 mr-1" />;
-      case 'rejected':
+      case 'cancelled':
         return <FiXCircle className="text-red-500 mr-1" />;
       case 'pending':
         return <FiLoader className="text-yellow-500 mr-1 animate-spin" />;
@@ -230,6 +228,7 @@ const DoctorDashboard = () => {
       <Sidebar role="doctor" />
       
       <main className="flex-1 p-4 md:p-8">
+        {/* Header Section */}
         <div className="mb-8">
           <motion.h1 
             initial={{ opacity: 0, y: -10 }}
@@ -270,7 +269,9 @@ const DoctorDashboard = () => {
           ))}
         </div>
 
+        {/* Profile and Availability Section */}
         <div className="grid md:grid-cols-2 gap-8 mb-8">
+          {/* Profile Card */}
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -331,6 +332,7 @@ const DoctorDashboard = () => {
             </div>
           </motion.div>
 
+          {/* Availability Card */}
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -338,13 +340,14 @@ const DoctorDashboard = () => {
             className="bg-white rounded-xl shadow-lg p-6 border border-gray-100"
           >
             <h2 className="text-xl font-semibold text-gray-800 flex items-center mb-4">
-              <FiCalendar className="mr-2 text-blue-500" />
-              Set Availability
+              <FiClock className="mr-2 text-blue-500" />
+              Manage Availability
             </h2>
             <AvailabilityCalendar onUpdate={fetchData} />
           </motion.div>
         </div>
 
+        {/* Appointments Section */}
         <motion.section 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -353,7 +356,7 @@ const DoctorDashboard = () => {
         >
           <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 space-y-4 md:space-y-0">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center">
-              <FiClock className="mr-2 text-blue-500" />
+              <FiCalendar className="mr-2 text-blue-500" />
               Appointments Management
             </h2>
             
@@ -387,7 +390,7 @@ const DoctorDashboard = () => {
 
           {loading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+              <FiLoader className="animate-spin text-blue-500 text-2xl" />
             </div>
           ) : filteredAppointments.length > 0 ? (
             <div className="overflow-x-auto">
@@ -454,7 +457,7 @@ const DoctorDashboard = () => {
                           {getStatusIcon(appointment.status)}
                           <span className={`text-sm font-medium ${
                             appointment.status === 'confirmed' ? 'text-green-600' :
-                            appointment.status === 'rejected' ? 'text-red-600' : 'text-yellow-600'
+                            appointment.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
                           }`}>
                             {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
                           </span>
@@ -469,7 +472,7 @@ const DoctorDashboard = () => {
                         >
                           <option value="pending">Pending</option>
                           <option value="confirmed">Confirmed</option>
-                          <option value="rejected">cancelled</option>
+                          <option value="cancelled">Cancelled</option>
                         </select>
                       </td>
                     </motion.tr>

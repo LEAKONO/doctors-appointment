@@ -23,6 +23,101 @@ const deleteCloudinaryImage = async (imageUrl) => {
   }
 };
 
+exports.getAvailability = async (req, res) => {
+  try {
+    if (req.user.role !== 'doctor') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Only doctors can view availability slots' 
+      });
+    }
+
+    const doctor = await Doctor.findOne({ 
+      userId: req.user.userId,
+      isDeleted: { $ne: true } 
+    }).select('availableSlots');
+
+    if (!doctor) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Doctor not found' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      availableSlots: doctor.availableSlots || [] 
+    });
+
+  } catch (err) {
+    console.error("Error in getAvailability:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error', 
+      error: err.message 
+    });
+  }
+};
+
+exports.deleteAvailability = async (req, res) => {
+  try {
+    if (req.user.role !== 'doctor') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Only doctors can delete availability slots' 
+      });
+    }
+
+    const { slot } = req.body;
+    if (!slot) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Slot is required' 
+      });
+    }
+
+    const slotDate = new Date(slot);
+    if (isNaN(slotDate)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid date format' 
+      });
+    }
+
+    const doctor = await Doctor.findOneAndUpdate(
+      { userId: req.user.userId, isDeleted: { $ne: true } },
+      { $pull: { availableSlots: slot } },
+      { new: true }
+    );
+
+    if (!doctor) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Doctor not found' 
+      });
+    }
+
+    await Appointment.deleteMany({
+      doctorId: doctor._id,
+      date: slot,
+      status: 'pending'
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Availability slot deleted successfully',
+      availableSlots: doctor.availableSlots 
+    });
+
+  } catch (err) {
+    console.error("Error in deleteAvailability:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error', 
+      error: err.message 
+    });
+  }
+};
 exports.setAvailability = async (req, res) => {
   try {
     if (req.user.role !== 'doctor') {

@@ -15,6 +15,8 @@ router.post('/profile', authMiddleware, doctorController.updateDoctorProfile);
 router.get('/profile', authMiddleware, doctorController.getDoctorProfile);
 router.get('/all-doctors', doctorController.getAllDoctors);
 router.post('/set-availability', authMiddleware, doctorController.setAvailability);
+router.get('/availability', authMiddleware, doctorController.getAvailability);
+router.delete('/availability', authMiddleware, doctorController.deleteAvailability);
 router.get('/appointments', authMiddleware, doctorController.getAppointments);
 router.put('/appointments/:id', authMiddleware, doctorController.updateAppointmentStatus);
 

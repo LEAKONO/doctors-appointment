@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import AvailabilityCalendar from "../components/AvailabilityCalendar";
 import ProfileUpload from "../components/ProfileUpload";
@@ -77,13 +77,13 @@ const DoctorDashboard = () => {
     }
   };
 
-  const fetchProfile = useCallback(async () => {
+  const fetchProfile = async () => {
     try {
       const { data } = await api.get("/doctors/profile");
       if (data?.doctor) {
         // Add cache busting parameter to the image URL
         const profileImage = data.doctor.profileImage 
-          ? `${data.doctor.profileImage}?t=${Date.now()}`
+          ? `${data.doctor.profileImage}?v=${Date.now()}`
           : null;
         
         updateUserProfile({
@@ -99,7 +99,7 @@ const DoctorDashboard = () => {
       console.error("Error fetching profile:", error);
       toast.error("Failed to load profile data");
     }
-  }, [user, updateUserProfile]);
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -120,43 +120,43 @@ const DoctorDashboard = () => {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [fetchProfile]);
+  }, []);
 
   const updateStatus = async (appointmentId, status) => {
     try {
-      const { data } = await api.put(`/doctors/appointments/${appointmentId}`, { status });
-      
-      if (data?.success) {
-        setAppointments(prev =>
-          prev.map(appointment => 
-            appointment._id === appointmentId ? { 
-              ...appointment, 
-              status: data.appointment.status
-            } : appointment
-          )
-        );
-        fetchData();
-        toast.success(`Appointment ${status}`, {
-          icon: status === 'confirmed' ? '✅' : 
-                status === 'completed' ? '🎉' : 
-                status === 'cancelled' ? '❌' : '🕒',
-          style: {
-            background: status === 'confirmed' ? '#f0fdf4' : 
-                      status === 'completed' ? '#e0f2fe' : 
-                      status === 'cancelled' ? '#fef2f2' : '#fffbeb',
-            color: status === 'confirmed' ? '#166534' : 
-                  status === 'completed' ? '#075985' : 
-                  status === 'cancelled' ? '#991b1b' : '#92400e',
-          }
-        });
-      } else {
-        toast.error(data?.message || "Failed to update status");
-      }
+        const { data } = await api.put(`/doctors/appointments/${appointmentId}`, { status });
+
+        if (data?.success) {
+            setAppointments(prev =>
+                prev.map(appointment =>
+                    appointment._id === appointmentId ? {
+                        ...appointment,
+                        status: data.appointment.status
+                    } : appointment
+                )
+            );
+            fetchData();
+            toast.success(`Appointment ${status}`, {
+                icon: status === 'confirmed' ? '✅' :
+                      status === 'completed' ? '🎉' :
+                      status === 'cancelled' ? '❌' : '🕒',
+                style: {
+                    background: status === 'confirmed' ? '#f0fdf4' :
+                               status === 'completed' ? '#e0f2fe' :
+                               status === 'cancelled' ? '#fef2f2' : '#fffbeb',
+                    color: status === 'confirmed' ? '#166534' :
+                          status === 'completed' ? '#075985' :
+                          status === 'cancelled' ? '#991b1b' : '#92400e',
+                }
+            });
+        } else {
+            toast.error(data?.message || "Failed to update status");
+        }
     } catch (error) {
-      console.error("Error updating status:", error);
-      toast.error(error.response?.data?.message || "Failed to update appointment status");
+        console.error("Error updating status:", error);
+        toast.error(error.response?.data?.message || "Failed to update appointment status");
     }
-  };
+};
 
   const handleProfileUpdate = async (file) => {
     try {
@@ -171,7 +171,7 @@ const DoctorDashboard = () => {
       
       if (data.success) {
         // Force refresh by adding timestamp
-        const newImageUrl = data.profileImage ? `${data.profileImage}?t=${Date.now()}` : null;
+        const newImageUrl = data.profileImage ? `${data.profileImage}?v=${Date.now()}` : null;
         
         updateUserProfile({
           ...user,
@@ -181,7 +181,6 @@ const DoctorDashboard = () => {
           }
         });
         
-        // Force a complete refresh of profile data
         await fetchProfile();
         toast.success("Profile image updated successfully!");
       }
@@ -241,6 +240,7 @@ const DoctorDashboard = () => {
           <div className="w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mb-6"></div>
         </div>
 
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {Object.entries(stats).map(([key, value], index) => (
             <motion.div 
@@ -288,15 +288,7 @@ const DoctorDashboard = () => {
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.src = '/default-profile.jpg';
-                      updateUserProfile({
-                        ...user,
-                        doctorProfile: {
-                          ...user.doctorProfile,
-                          profileImage: null
-                        }
-                      });
                     }}
-                    key={user.doctorProfile.profileImage}
                   />
                 ) : (
                   <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-4xl font-bold text-blue-600 border-4 border-white shadow-md">

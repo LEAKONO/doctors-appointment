@@ -155,24 +155,30 @@ exports.getDoctorProfile = async (req, res) => {
     const doctor = await Doctor.findOne({ 
       userId: req.user.userId,
       isDeleted: { $ne: true } 
-    }).populate('userId', 'name email phone');
+    }).populate({
+      path: 'userId',
+      match: { isDeleted: { $ne: true } }, 
+      select: 'name email phone'
+    });
 
     if (!doctor || !doctor.userId) {
       return res.status(404).json({ success: false, message: "Doctor not found" });
     }
 
-    const profileImage = doctor.profileImage 
-      ? `${doctor.profileImage}?t=${Date.now()}`
-      : null;
+    const profileData = {
+      _id: doctor._id,
+      name: doctor.userId.name,
+      email: doctor.userId.email,
+      phone: doctor.userId.phone,
+      specialty: doctor.specialty,
+      qualifications: doctor.qualifications,
+      profileImage: doctor.profileImage ? `${doctor.profileImage}?v=${Date.now()}` : null,
+      availableSlots: doctor.availableSlots,
+      bio: doctor.bio,
+      consultationFee: doctor.consultationFee
+    };
 
-    res.json({
-      success: true,
-      doctor: {
-        ...doctor.toObject(),
-        profileImage,
-        userId: doctor.userId
-      }
-    });
+    res.json({ success: true, doctor: profileData });
   } catch (error) {
     console.error("Error fetching doctor profile:", error);
     res.status(500).json({ 
@@ -182,6 +188,7 @@ exports.getDoctorProfile = async (req, res) => {
     });
   }
 };
+
 exports.getAllDoctors = async (req, res) => {
   try {
     const { specialty } = req.query;
@@ -345,10 +352,12 @@ exports.uploadProfileImage = async (req, res) => {
       });
     }
 
+    // Delete old image if exists
     if (doctor.profileImage) {
       await deleteCloudinaryImage(doctor.profileImage);
     }
 
+    // Upload with cache invalidation settings
     const result = await cloudinary.uploader.upload(req.file.path, {
       folder: 'doctor_profiles',
       public_id: `profile_${req.user.userId}`,
@@ -359,16 +368,14 @@ exports.uploadProfileImage = async (req, res) => {
         { quality: 'auto:best' },
         { fetch_format: 'auto' }
       ],
-      unique_filename: false,
+      unique_filename: true,
       use_filename: true
     });
 
-    // Generate a fresh URL with timestamp
     const freshUrl = `${result.secure_url}?t=${Date.now()}`;
-    doctor.profileImage = result.secure_url; // Store without timestamp in DB
+    doctor.profileImage = freshUrl;
     await doctor.save();
 
-    // Clean up temp file
     if (req.file.path && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }

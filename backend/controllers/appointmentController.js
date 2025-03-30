@@ -66,7 +66,6 @@ exports.bookAppointment = async (req, res) => {
       await session.commitTransaction();
       session.endSession();
 
-      // Send email notification
       const patient = await User.findById(req.userId).select('name email');
       if (patient) {
         sendEmail(
@@ -76,7 +75,6 @@ exports.bookAppointment = async (req, res) => {
         ).catch(console.error);
       }
 
-      // Create notification
       Notification.create({
         userId: doctor.userId._id,
         message: `New appointment request from ${patient.name}`,

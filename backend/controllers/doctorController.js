@@ -155,30 +155,24 @@ exports.getDoctorProfile = async (req, res) => {
     const doctor = await Doctor.findOne({ 
       userId: req.user.userId,
       isDeleted: { $ne: true } 
-    }).populate({
-      path: 'userId',
-      match: { isDeleted: { $ne: true } }, 
-      select: 'name email phone'
-    });
+    }).populate('userId', 'name email phone');
 
     if (!doctor || !doctor.userId) {
       return res.status(404).json({ success: false, message: "Doctor not found" });
     }
 
-    const profileData = {
-      _id: doctor._id,
-      name: doctor.userId.name,
-      email: doctor.userId.email,
-      phone: doctor.userId.phone,
-      specialty: doctor.specialty,
-      qualifications: doctor.qualifications,
-      profileImage: doctor.profileImage ? `${doctor.profileImage}?v=${Date.now()}` : null,
-      availableSlots: doctor.availableSlots,
-      bio: doctor.bio,
-      consultationFee: doctor.consultationFee
-    };
+    const profileImage = doctor.profileImage 
+      ? `${doctor.profileImage}?t=${Date.now()}`
+      : null;
 
-    res.json({ success: true, doctor: profileData });
+    res.json({
+      success: true,
+      doctor: {
+        ...doctor.toObject(),
+        profileImage,
+        userId: doctor.userId
+      }
+    });
   } catch (error) {
     console.error("Error fetching doctor profile:", error);
     res.status(500).json({ 
@@ -188,7 +182,6 @@ exports.getDoctorProfile = async (req, res) => {
     });
   }
 };
-
 exports.getAllDoctors = async (req, res) => {
   try {
     const { specialty } = req.query;
@@ -358,40 +351,39 @@ exports.uploadProfileImage = async (req, res) => {
 
     const result = await cloudinary.uploader.upload(req.file.path, {
       folder: 'doctor_profiles',
-      public_id: `profile_${req.user.userId}_${Date.now()}`,
+      public_id: `profile_${req.user.userId}`,
       overwrite: true,
       invalidate: true,
       transformation: [
         { width: 500, height: 500, crop: 'fill', gravity: 'face' },
         { quality: 'auto:best' },
         { fetch_format: 'auto' }
-      ]
+      ],
+      unique_filename: false,
+      use_filename: true
     });
 
-    doctor.profileImage = result.secure_url;
+    // Generate a fresh URL with timestamp
+    const freshUrl = `${result.secure_url}?t=${Date.now()}`;
+    doctor.profileImage = result.secure_url; // Store without timestamp in DB
     await doctor.save();
 
+    // Clean up temp file
     if (req.file.path && fs.existsSync(req.file.path)) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('Error deleting temp file:', err);
-      });
+      fs.unlinkSync(req.file.path);
     }
 
     res.json({
       success: true,
-      profileImage: `${result.secure_url}?v=${Date.now()}`,
+      profileImage: freshUrl,
       message: "Profile image updated successfully"
     });
 
   } catch (error) {
     console.error("Upload error:", error);
-    
     if (req.file?.path && fs.existsSync(req.file.path)) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('Error deleting temp file:', err);
-      });
+      fs.unlinkSync(req.file.path);
     }
-
     res.status(500).json({
       success: false,
       message: "Failed to upload image",

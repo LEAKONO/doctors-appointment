@@ -146,7 +146,7 @@ Content-Type: application/json
    ```
 4. Start server:
    ```bash
-   npm start
+   node server.js
    ```
 
 ### Frontend Setup
@@ -165,7 +165,7 @@ Content-Type: application/json
    ```
 4. Start development server:
    ```bash
-   npm start
+   npm run dev
    ```
 
 ## 🔒 Demo Accounts

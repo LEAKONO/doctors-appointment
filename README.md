@@ -196,5 +196,5 @@ Distributed under the MIT License. See LICENSE for more information.
 **Emmanuel Leakono**
 
 - **GitHub:** [@LEAKONO](https://github.com/LEAKONO)
-- **Email:** leakonoemmanuel@gmail.com
+- **Email:** leakonoemmanuel3@gmail.com
 
